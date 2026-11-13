@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>J.A.R.V.I.S. AI Control System // Vision Navigator & Whisper LLM Router</title>
+    <title>J.A.R.V.I.S. AI Control System // Vision Navigator & Always-On Whisper LLM</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Noto+Sans+KR:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
@@ -19,10 +19,7 @@
             --border-cyan: rgba(0, 242, 255, 0.45);
         }
 
-        * {
-            box-sizing: border-box;
-            user-select: none;
-        }
+        * { box-sizing: border-box; user-select: none; }
 
         body {
             background-color: var(--bg-dark);
@@ -105,6 +102,7 @@
             box-shadow: 0 0 15px rgba(0, 242, 255, 0.25), inset 0 0 10px rgba(0, 242, 255, 0.15);
             transition: all 0.28s cubic-bezier(0.25, 0.8, 0.25, 1);
         }
+
         .role-btn:hover {
             background: var(--neon-cyan);
             color: #02060d;
@@ -117,11 +115,13 @@
             border: 1px solid rgba(0, 242, 255, 0.35);
             transition: all 0.25s ease;
         }
+
         .mode-btn:hover {
             border-color: var(--neon-cyan);
             background: rgba(0, 242, 255, 0.14);
             box-shadow: 0 0 14px rgba(0, 242, 255, 0.25);
         }
+
         .mode-btn.active {
             background: rgba(0, 242, 255, 0.22);
             border-color: var(--neon-cyan);
@@ -130,12 +130,13 @@
 
         .reactor-wrapper {
             position: relative;
-            width: 210px;
-            height: 210px;
+            width: 205px;
+            height: 205px;
             display: flex;
             align-items: center;
             justify-content: center;
         }
+
         .reactor-outer {
             position: absolute;
             inset: 0;
@@ -144,6 +145,7 @@
             box-shadow: 0 0 35px rgba(0, 242, 255, 0.3), inset 0 0 25px rgba(0, 242, 255, 0.25);
             animation: pulse-core 3.5s infinite ease-in-out;
         }
+
         .reactor-ring-1 {
             position: absolute;
             inset: 14px;
@@ -152,6 +154,7 @@
             opacity: 0.75;
             animation: spin-cw 18s linear infinite;
         }
+
         .reactor-ring-2 {
             position: absolute;
             inset: 30px;
@@ -161,6 +164,7 @@
             border-bottom-color: var(--neon-cyan);
             animation: spin-ccw 10s linear infinite;
         }
+
         .reactor-ring-3 {
             position: absolute;
             inset: 44px;
@@ -168,9 +172,10 @@
             border: 1px dotted rgba(0, 242, 255, 0.8);
             animation: spin-cw 24s linear infinite;
         }
+
         .reactor-core {
-            width: 108px;
-            height: 108px;
+            width: 106px;
+            height: 106px;
             border-radius: 50%;
             background: radial-gradient(circle, rgba(0, 242, 255, 0.28) 0%, rgba(2, 6, 13, 0.92) 75%);
             border: 2px solid var(--neon-cyan);
@@ -180,13 +185,13 @@
             align-items: center;
             justify-content: center;
             z-index: 2;
-            transition: all 0.4s ease;
+            transition: all 0.35s ease;
         }
 
-        /* 음성 감지(Speaking) 상태일 때 코어 파동 */
+        /* 상시 마이크 음성 감지(Speaking) 상태 시 코어 반응 */
         .vad-speaking .reactor-core {
             border-color: #00ffaa;
-            box-shadow: 0 0 45px #00ffaa, inset 0 0 30px #00ffaa;
+            box-shadow: 0 0 45px #00ffaa, inset 0 0 28px #00ffaa;
             transform: scale(1.08);
         }
 
@@ -200,19 +205,16 @@
         @keyframes pulse-core { 0%, 100% { transform: scale(1); opacity: 0.85; } 50% { transform: scale(1.03); opacity: 1; } }
 
         #virtual-cursor {
-            transition: left 0.36s cubic-bezier(0.22, 1, 0.36, 1), top 0.36s cubic-bezier(0.22, 1, 0.36, 1);
-        }
-        .click-ripple { animation: ripple-ping 0.65s ease-out forwards; }
-        @keyframes ripple-ping {
-            0% { transform: scale(0.4); opacity: 1; }
-            100% { transform: scale(2.4); opacity: 0; }
+            transition: left 0.34s cubic-bezier(0.22, 1, 0.36, 1), top 0.34s cubic-bezier(0.22, 1, 0.36, 1);
         }
 
-        /* 비전 스캔 라인 애니메이션 */
+        .click-ripple { animation: ripple-ping 0.65s ease-out forwards; }
+        @keyframes ripple-ping { 0% { transform: scale(0.4); opacity: 1; } 100% { transform: scale(2.4); opacity: 0; } }
+
         @keyframes vision-scan {
-            0% { top: 0%; opacity: 0.9; }
+            0% { top: 0%; opacity: 0.85; }
             50% { top: 96%; opacity: 1; }
-            100% { top: 0%; opacity: 0.9; }
+            100% { top: 0%; opacity: 0.85; }
         }
         .vision-scanner-bar {
             position: absolute;
@@ -221,7 +223,7 @@
             height: 2px;
             background: linear-gradient(90deg, transparent, #00ffaa, #00f2ff, transparent);
             box-shadow: 0 0 12px #00ffaa;
-            animation: vision-scan 2.2s ease-in-out infinite;
+            animation: vision-scan 2.0s ease-in-out infinite;
             pointer-events: none;
             z-index: 30;
         }
@@ -236,42 +238,52 @@
     <div class="hud-grid"></div>
     <div class="hud-scanline"></div>
 
-    <!-- ========================================================== -->
-    <!-- 1. 초기 접속 화면 (USER / PANEL 선택)                       -->
-    <!-- ========================================================== -->
+    <!-- 우측 상단 실시간 Firebase 클라우드 상태 표시기 -->
+    <div class="fixed top-2 right-2 z-50 px-3 py-1 rounded bg-[#030914]/95 border border-cyan-500/40 text-[11px] font-mono-code flex items-center gap-2 shadow-lg">
+        <span id="cloud-sync-dot" class="w-2 h-2 rounded-full bg-amber-400"></span>
+        <span id="cloud-sync-text" class="text-cyan-200">CLOUD DB: 연결 확인 중...</span>
+    </div>
+
+    <!-- 1. 초기 접속 화면 (USER / PANEL 선택) -->
     <section id="login-screen" class="relative z-10 flex flex-col items-center justify-center min-h-screen px-4">
-        <div class="text-center mb-12">
+        <div class="text-center mb-10">
             <div class="inline-block px-3 py-1 mb-3 text-xs tracking-[0.3em] border border-cyan-400/40 rounded-full text-cyan-300 bg-cyan-950/30">
-                STARK INDUSTRIES // AI INTERFACE v9.0 (VISION + WHISPER + ROUTER)
+                STARK INDUSTRIES // VISION NAVIGATOR + WHISPER + LLM ROUTER
             </div>
             <h1 class="font-orbitron text-4xl sm:text-6xl font-black tracking-[0.22em] neon-text">
                 J.A.R.V.I.S.
             </h1>
             <p class="mt-3 text-sm sm:text-base text-cyan-200/70 tracking-wider">
-                접속 모드를 선택하십시오 (상시 음성 Listening · 비전 UI 분석 엔진 탑재)
+                접속 모드를 선택하십시오 (상시 마이크 Whisper 인식 · 비전 화면분석 · 클라우드 연동)
             </p>
         </div>
 
         <div class="flex flex-col sm:flex-row gap-6 w-full max-w-md justify-center">
             <button onclick="openAuthModal('USER')" class="role-btn flex-1 py-5 px-8 rounded-lg font-orbitron text-xl font-bold tracking-[0.2em] cursor-pointer">
                 USER
-                <span class="block text-[11px] font-sans font-normal tracking-normal mt-1 opacity-80">비서 대시보드 &amp; 상시 음성 대화</span>
+                <span class="block text-[11px] font-sans font-normal tracking-normal mt-1 opacity-80">상시 음성 대화 &amp; 원격 제어 대시보드</span>
             </button>
             <button onclick="openAuthModal('PANEL')" class="role-btn flex-1 py-5 px-8 rounded-lg font-orbitron text-xl font-bold tracking-[0.2em] cursor-pointer">
                 PANEL
-                <span class="block text-[11px] font-sans font-normal tracking-normal mt-1 opacity-80">로컬 LLM &amp; Whisper 연산 기기 등록</span>
+                <span class="block text-[11px] font-sans font-normal tracking-normal mt-1 opacity-80">현재 기기를 Whisper·LLM 노드로 등록</span>
             </button>
         </div>
 
-        <div id="login-node-status" class="mt-10 text-xs text-cyan-300/70 flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full bg-gray-500" id="login-status-dot"></span>
-            <span id="login-status-text">현재 등록된 로컬 LLM 연산 기기: 확인 중...</span>
+        <div class="hud-panel mt-8 px-5 py-3.5 rounded-xl max-w-md w-full flex items-center justify-between gap-3">
+            <div class="flex items-center gap-2.5 truncate">
+                <span class="w-2.5 h-2.5 rounded-full bg-gray-500 shrink-0" id="login-status-dot"></span>
+                <div class="truncate">
+                    <div class="text-[10px] text-cyan-400/80 font-orbitron">REGISTERED COMPUTE NODE</div>
+                    <div id="login-status-text" class="text-xs sm:text-sm font-bold text-white truncate">클라우드에서 기기 조회 중...</div>
+                </div>
+            </div>
+            <button onclick="pullStateFromCloud(true)" class="px-2.5 py-1 rounded border border-cyan-400/50 text-[11px] text-cyan-300 hover:bg-cyan-400 hover:text-slate-950 transition shrink-0 cursor-pointer">
+                ↻ 새로고침
+            </button>
         </div>
     </section>
 
-    <!-- ========================================================== -->
-    <!-- 비밀번호 인증 모달                                          -->
-    <!-- ========================================================== -->
+    <!-- 비밀번호 인증 모달 -->
     <div id="auth-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 backdrop-blur-sm px-4">
         <div class="hud-panel w-full max-w-sm p-6 rounded-lg text-center">
             <div class="flex justify-between items-center mb-4">
@@ -282,48 +294,50 @@
             <p class="text-xs text-cyan-200/70 mb-4">시스템 접근 비밀번호를 입력하세요.</p>
 
             <input type="password" id="password-input" placeholder="비밀번호 입력"
-                class="w-full px-4 py-3 rounded bg-[#030710] border border-cyan-500/60 text-center text-white tracking-widest focus:outline-none focus:border-cyan-300 mb-2">
+                class="w-full px-4 py-3 rounded bg-[#030710] border border-cyan-500/60 text-center text-white tracking-widest focus:outline-none focus:border-cyan-300 focus:shadow-[0_0_12px_rgba(0,242,255,0.4)] mb-2">
             
             <div id="auth-error-msg" class="text-xs text-rose-400 h-4 mb-3"></div>
 
             <div class="flex gap-2">
                 <button onclick="fillDemoPassword()" type="button"
-                    class="px-3 py-2.5 rounded border border-cyan-500/30 text-xs text-cyan-300/80 hover:bg-cyan-950/60 transition">
-                    테스트 비번 자동입력
+                    class="px-3 py-2.5 rounded border border-cyan-500/30 text-xs text-cyan-300/80 hover:bg-cyan-950/60 transition cursor-pointer">
+                    비번 자동입력
                 </button>
                 <button onclick="verifyPassword()" type="button"
-                    class="flex-1 py-2.5 rounded bg-cyan-400 text-[#02060d] font-bold text-sm tracking-wider hover:bg-cyan-300 transition shadow-[0_0_15px_rgba(0,242,255,0.5)]">
+                    class="flex-1 py-2.5 rounded bg-cyan-400 text-[#02060d] font-bold text-sm tracking-wider hover:bg-cyan-300 transition shadow-[0_0_15px_rgba(0,242,255,0.5)] cursor-pointer">
                     인증 및 접속
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- ========================================================== -->
-    <!-- 2. PANEL 화면 (로컬 LLM & Whisper 연산 기기 등록)            -->
-    <!-- ========================================================== -->
+    <!-- 2. PANEL 화면 (로컬 LLM & Whisper 연산 기기 등록) -->
     <section id="panel-screen" class="relative z-10 hidden flex-col items-center justify-center min-h-screen px-4">
         <div class="hud-panel w-full max-w-lg p-8 rounded-xl text-center">
             <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-400/50 text-emerald-300 text-xs mb-4">
                 <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-                LOCAL LLM &amp; WHISPER STT NODE ACTIVE
+                CLOUD COMPUTE NODE (WHISPER + LLM) REGISTERED
             </div>
             <h2 class="font-orbitron text-2xl sm:text-3xl font-bold neon-text mb-2">
-                연산 기기 등록 완료
+                연산 기기 클라우드 등록 완료
             </h2>
             <p class="text-sm text-cyan-100/80 mb-6">
-                현재 단말기가 J.A.R.V.I.S.의 로컬 Whisper 음성인식 및 LLM 추론 노드로 등록되었습니다.
+                다른 기기(휴대폰·태블릿·PC)에서 동일 링크로 접속하면 아래 연산 노드와 실시간 연동됩니다.
             </p>
 
             <div class="bg-[#030812]/90 border border-cyan-500/30 rounded-lg p-4 text-left space-y-2.5 mb-6 text-xs sm:text-sm">
                 <div class="flex justify-between">
                     <span class="text-cyan-400/80">등록된 기기명:</span>
-                    <span id="panel-device-name" class="font-bold text-white">Local-LLM-Node</span>
+                    <span id="panel-device-name" class="font-bold text-white">-</span>
                 </div>
-                <div class="flex justify-between">
-                    <span class="text-cyan-400/80">백엔드 엔드포인트:</span>
+                <div class="flex justify-between items-center">
+                    <span class="text-cyan-400/80">Whisper/LLM 서버 주소:</span>
                     <input id="panel-endpoint-input" type="text" value="http://localhost:8000"
                         class="bg-[#02060d] border border-cyan-500/40 rounded px-2 py-0.5 text-xs text-cyan-200 font-mono-code w-48 text-right">
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-cyan-400/80">클라우드 동기화 상태:</span>
+                    <span id="panel-cloud-status" class="text-emerald-400 font-semibold">동기화 중...</span>
                 </div>
                 <div class="flex justify-between">
                     <span class="text-cyan-400/80">등록 시각:</span>
@@ -332,66 +346,67 @@
             </div>
 
             <div class="mb-6 text-left">
-                <label class="block text-xs text-cyan-300 mb-1.5">연산 기기 식별 이름 및 API 주소 저장</label>
+                <label class="block text-xs text-cyan-300 mb-1.5">연산 기기 이름 및 엔드포인트 저장 (모든 기기에 즉시 반영)</label>
                 <div class="flex gap-2">
-                    <input type="text" id="custom-device-input" placeholder="예: Main-RTX4090-PC"
-                        class="flex-1 px-3 py-2 rounded bg-[#030710] border border-cyan-500/50 text-sm text-white focus:outline-none">
+                    <input type="text" id="custom-device-input" placeholder="예: 거실 노트북 / Main-RTX-PC"
+                        class="flex-1 px-3 py-2 rounded bg-[#030710] border border-cyan-500/50 text-sm text-white focus:outline-none focus:border-cyan-300">
                     <button onclick="updateDeviceName()"
-                        class="px-4 py-2 rounded border border-cyan-400 text-cyan-300 text-xs font-bold hover:bg-cyan-400 hover:text-slate-950 transition">
-                        적용
+                        class="px-4 py-2 rounded border border-cyan-400 text-cyan-300 text-xs font-bold hover:bg-cyan-400 hover:text-slate-950 transition cursor-pointer">
+                        이름 저장
                     </button>
                 </div>
             </div>
 
             <div class="flex flex-col sm:flex-row gap-3">
                 <button onclick="switchToUserDirectly()"
-                    class="flex-1 py-3 rounded-lg bg-cyan-400 text-slate-950 font-bold text-sm hover:bg-cyan-300 transition shadow-[0_0_15px_rgba(0,242,255,0.4)]">
+                    class="flex-1 py-3 rounded-lg bg-cyan-400 text-slate-950 font-bold text-sm hover:bg-cyan-300 transition shadow-[0_0_15px_rgba(0,242,255,0.4)] cursor-pointer">
                     USER 대시보드로 이동
                 </button>
                 <button onclick="logoutToHome()"
-                    class="py-3 px-5 rounded-lg border border-cyan-500/40 text-cyan-300 text-sm hover:bg-cyan-950/50 transition">
+                    class="py-3 px-5 rounded-lg border border-cyan-500/40 text-cyan-300 text-sm hover:bg-cyan-950/50 transition cursor-pointer">
                     메인으로 돌아가기
                 </button>
             </div>
         </div>
     </section>
 
-    <!-- ========================================================== -->
-    <!-- 3. USER 메인 대시보드                                       -->
-    <!-- ========================================================== -->
+    <!-- 3. USER 메인 대시보드 -->
     <main id="user-dashboard" class="relative z-10 hidden min-h-screen w-full p-4 lg:p-6 flex flex-col justify-between">
-        
-        <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mt-6 sm:mt-0">
             <div class="flex items-center gap-3">
                 <div class="w-3 h-3 rounded-full bg-cyan-400 shadow-[0_0_10px_#00f2ff]"></div>
                 <div>
-                    <h1 class="font-orbitron text-lg sm:text-xl font-bold tracking-[0.2em] neon-text">J.A.R.V.I.S. OS v9.0</h1>
-                    <p class="text-[11px] text-cyan-300/70">ALWAYS-ON WHISPER STT // INTENT ROUTER // VISION NAVIGATOR</p>
+                    <h1 class="font-orbitron text-lg sm:text-xl font-bold tracking-[0.2em] neon-text">J.A.R.V.I.S. OS v9.5</h1>
+                    <p class="text-[11px] text-cyan-300/70">ALWAYS-ON WHISPER STT // INTENT ROUTER // UI-AGNOSTIC VISION NAVIGATOR</p>
                 </div>
             </div>
 
-            <div class="hud-panel px-4 py-3 rounded-lg self-end sm:self-auto min-w-[270px]">
-                <div class="flex items-center justify-between gap-4">
+            <!-- 우측 상단: 등록된 연산 기기 표시 및 원격 연결 버튼 -->
+            <div class="hud-panel px-4 py-3 rounded-lg self-end sm:self-auto min-w-[280px]">
+                <div class="flex items-center justify-between gap-3">
                     <span class="text-[11px] tracking-wider text-cyan-300/80 uppercase">연산 기기 (Whisper + LLM)</span>
                     <span id="node-badge" class="text-[10px] px-2 py-0.5 rounded bg-rose-500/20 border border-rose-400/50 text-rose-300 font-bold">
-                        OFFLINE
+                        CHECKING
                     </span>
                 </div>
                 <div id="compute-device-name" class="mt-1 text-sm sm:text-base font-bold text-white truncate">
-                    미등록 (PANEL 등록 필요)
+                    클라우드 조회 중...
+                </div>
+                <div class="mt-2 pt-2 border-t border-cyan-500/30 flex items-center justify-between gap-2">
+                    <span id="node-ping-text" class="text-[10px] text-cyan-300/75 font-mono-code">실시간 동기화 대기</span>
+                    <button onclick="pingConnectedNode()" class="px-2.5 py-1 rounded bg-cyan-400/20 border border-cyan-400 text-[10px] text-cyan-200 font-bold hover:bg-cyan-400 hover:text-slate-950 transition cursor-pointer">
+                        🔗 기기 연결 확인
+                    </button>
                 </div>
             </div>
         </header>
 
-        <!-- 중단 영역 -->
         <div class="my-4 lg:my-2 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center flex-1">
-            
-            <!-- 좌측: 원클릭 모드 컨트롤 패널 -->
             <aside class="lg:col-span-3 flex flex-col gap-3 order-2 lg:order-1">
                 <div class="hud-panel p-4 rounded-xl">
                     <div class="flex items-center justify-between border-b border-cyan-500/30 pb-2 mb-3">
                         <span class="font-orbitron text-xs tracking-widest text-cyan-300 font-bold">ONE-CLICK MODES</span>
-                        <span class="text-[10px] text-emerald-300 font-mono-code">UI-AGNOSTIC</span>
+                        <span class="text-[10px] text-emerald-300 font-mono-code">VISION SHIELD</span>
                     </div>
 
                     <div class="space-y-2.5">
@@ -457,18 +472,18 @@
                             <span id="mini-noise-label" class="text-[11px] text-cyan-200/80">🔇 백색소음: 정지</span>
                         </div>
                         <div class="flex gap-1">
-                            <button onclick="startWhiteNoise('brown', 0.32)" class="px-1.5 py-0.5 rounded bg-cyan-950/80 border border-cyan-500/30 text-[10px] hover:border-cyan-300">📚브라운</button>
-                            <button onclick="startWhiteNoise('binaural', 0.28)" class="px-1.5 py-0.5 rounded bg-cyan-950/80 border border-amber-500/30 text-[10px] text-amber-300 hover:border-amber-300">🧠바이노럴</button>
-                            <button onclick="startWhiteNoise('rain', 0.35)" class="px-1.5 py-0.5 rounded bg-cyan-950/80 border border-emerald-500/30 text-[10px] text-emerald-300 hover:border-emerald-300">🌧️빗소리</button>
-                            <button onclick="stopWhiteNoise()" class="px-1.5 py-0.5 rounded bg-rose-950/80 border border-rose-500/40 text-[10px] text-rose-300 hover:border-rose-300">🔇</button>
+                            <button onclick="startWhiteNoise('brown', 0.32)" class="px-1.5 py-0.5 rounded bg-cyan-950/80 border border-cyan-500/30 text-[10px] hover:border-cyan-300 cursor-pointer">📚브라운</button>
+                            <button onclick="startWhiteNoise('binaural', 0.28)" class="px-1.5 py-0.5 rounded bg-cyan-950/80 border border-amber-500/30 text-[10px] text-amber-300 hover:border-amber-300 cursor-pointer">🧠바이노럴</button>
+                            <button onclick="startWhiteNoise('rain', 0.35)" class="px-1.5 py-0.5 rounded bg-cyan-950/80 border border-emerald-500/30 text-[10px] text-emerald-300 hover:border-emerald-300 cursor-pointer">🌧️빗소리</button>
+                            <button onclick="stopWhiteNoise()" class="px-1.5 py-0.5 rounded bg-rose-950/80 border border-rose-500/40 text-[10px] text-rose-300 hover:border-rose-300 cursor-pointer">🔇</button>
                         </div>
                     </div>
                 </div>
             </aside>
 
-            <!-- 가운데: JARVIS 코어 + 상시 마이크 VAD + Whisper STT + LLM 대화창 -->
+            <!-- 중앙: 아크 리액터 + 상시 마이크 Listening(VAD) + Whisper STT -> Router -> LLM 대화창 -->
             <section class="lg:col-span-6 flex flex-col items-center justify-center py-2 order-1 lg:order-2">
-                <div id="reactor-container" onclick="openStudyingModeWindow()" class="reactor-wrapper cursor-pointer group" title="클릭하여 ◈ 비전 & 작업 모드 제어창 열기">
+                <div id="reactor-container" onclick="openStudyingModeWindow()" class="reactor-wrapper cursor-pointer group" title="클릭하여 ◈ 비전 화면분석 & 작업 모드 제어창 열기">
                     <div class="reactor-outer"></div>
                     <div class="reactor-ring-1"></div>
                     <div class="reactor-ring-2"></div>
@@ -483,16 +498,18 @@
                     </div>
                 </div>
 
-                <!-- 상시 마이크 VAD 상태 바 & 데시벨 게이지 -->
+                <!-- 상시 마이크 Listening (VAD) 상태 게이지 바 -->
                 <div class="mt-3 w-full max-w-lg px-2">
-                    <div class="bg-[#041224]/90 border border-cyan-500/40 rounded-lg px-3 py-2 flex items-center justify-between gap-3">
-                        <div class="flex items-center gap-2">
-                            <span id="vad-status-dot" class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
-                            <span id="vad-status-label" class="text-[11px] font-bold text-emerald-300">상시 마이크 LISTENING 대기 중 (말씀하시면 자동 녹음·Whisper 분석)</span>
+                    <div class="bg-[#041224]/90 border border-cyan-500/40 rounded-lg px-3 py-2 flex items-center justify-between gap-2">
+                        <div class="flex items-center gap-2 truncate">
+                            <span id="vad-status-dot" class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping shrink-0"></span>
+                            <span id="vad-status-label" class="text-[11px] font-bold text-emerald-300 truncate">
+                                상시 마이크 LISTENING 대기 중 (버튼 없이 말씀하시면 Whisper 자동 인식)
+                            </span>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <div class="w-20 h-2 bg-slate-900 rounded-full overflow-hidden border border-cyan-500/30">
-                                <div id="vad-level-bar" class="h-full bg-emerald-400 transition-all duration-75" style="width: 4%;"></div>
+                        <div class="flex items-center gap-2 shrink-0">
+                            <div class="w-16 sm:w-20 h-2 bg-slate-900 rounded-full overflow-hidden border border-cyan-500/30">
+                                <div id="vad-level-bar" class="h-full bg-emerald-400 transition-all duration-75" style="width: 5%;"></div>
                             </div>
                             <button onclick="toggleAlwaysOnListening()" id="btn-toggle-always-mic"
                                 class="text-[10px] px-2 py-0.5 rounded border border-emerald-400/50 text-emerald-300 hover:bg-emerald-400 hover:text-slate-950 font-mono-code cursor-pointer">
@@ -506,25 +523,26 @@
                 <div class="mt-2.5 w-full max-w-lg px-2">
                     <div class="hud-panel p-3 rounded-lg">
                         <div class="flex items-center justify-between text-[10px] font-mono-code text-cyan-400 border-b border-cyan-500/30 pb-1 mb-2">
-                            <span>INTENT ROUTER // WHISPER STT &rarr; LLM CONVERSATION LOG</span>
-                            <span id="last-route-badge" class="px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-200">ROUTE: STANDBY</span>
+                            <span>WHISPER STT &rarr; INTENT ROUTER &rarr; LLM RESPONSE</span>
+                            <span id="last-route-badge" class="px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-200">ROUTE: READY</span>
                         </div>
                         <div id="jarvis-chat-history" class="h-28 overflow-y-auto space-y-1.5 pr-1 text-xs">
                             <div class="text-cyan-200">
-                                <span class="text-cyan-400 font-bold">[JARVIS]</span> 반갑습니다. 상시 음성 감지(Always-On Listening) 및 대화 라우터가 활성화되어 있습니다. 명령이나 일상 대화를 편하게 말씀해 주세요.
+                                <span class="text-cyan-400 font-bold">[JARVIS]</span>
+                                <span id="jarvis-message">반갑습니다. 상시 마이크 Listening 및 대화/명령 라우터가 가동 중입니다. 버튼 조작 없이 바로 말씀하시거나 아래에 입력해 주세요.</span>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- 텍스트/음성 겸용 입력 바 -->
+                <!-- 텍스트/음성 겸용 입력창 -->
                 <div class="mt-2.5 w-full max-w-lg px-2">
                     <div class="hud-panel p-2 rounded-lg flex items-center gap-2">
-                        <span class="px-2 py-1 rounded bg-emerald-500/15 border border-emerald-400/40 text-emerald-300 text-[11px] font-mono-code shrink-0">
-                            Whisper+LLM
+                        <span class="px-2 py-1 rounded bg-emerald-500/15 border border-emerald-400/40 text-emerald-300 text-[10px] font-mono-code shrink-0">
+                            Router+LLM
                         </span>
                         <input id="jarvis-command-input" type="text"
-                            placeholder="일상 대화 또는 명령 입력 (예: 오늘 수능 공부법 알려줘 / 이투스 열어 / 불 켜)"
+                            placeholder="일상 대화 또는 제어 명령 입력 (예: 오늘 공부 계획 추천해줘 / 이투스 열어 / 불 켜)"
                             class="flex-1 bg-transparent text-xs text-white placeholder-cyan-400/45 focus:outline-none px-1">
                         <button onclick="executeVoiceOrTextCommand()" type="button"
                             class="px-3 py-1.5 rounded bg-cyan-400 text-slate-950 font-bold text-xs hover:bg-cyan-300 transition shrink-0 cursor-pointer">
@@ -534,7 +552,6 @@
                 </div>
             </section>
 
-            <!-- 우측: CORE TELEMETRY -->
             <div class="lg:col-span-3 flex flex-col items-end justify-center order-3">
                 <div class="hud-panel p-4 rounded-xl w-full lg:max-w-[280px] space-y-2.5">
                     <div class="flex items-center justify-between border-b border-cyan-500/30 pb-1.5">
@@ -547,29 +564,33 @@
                     </div>
                     <div class="text-xs text-cyan-200/80 flex justify-between">
                         <span>현재 시각</span>
-                        <span id="telemetry-clock" class="font-mono-code text-cyan-300">15:13:00</span>
+                        <span id="telemetry-clock" class="font-mono-code text-cyan-300">19:58:00</span>
                     </div>
                     <div class="text-xs text-cyan-200/80 flex justify-between">
-                        <span>음성 엔진</span>
-                        <span id="telemetry-stt" class="font-mono-code text-emerald-300">VAD + WHISPER</span>
+                        <span>LLM 추론 노드</span>
+                        <span id="telemetry-llm" class="font-mono-code text-white">STANDBY</span>
                     </div>
                     <div class="text-xs text-cyan-200/80 flex justify-between">
-                        <span>라우터 최근 판별</span>
-                        <span id="telemetry-router" class="font-mono-code text-cyan-300">IDLE</span>
+                        <span>라우터 최근 분기</span>
+                        <span id="telemetry-router" class="font-mono-code text-emerald-300">IDLE</span>
                     </div>
                     <div class="text-xs text-cyan-200/80 flex justify-between">
                         <span>모니터 밝기 (WMI)</span>
                         <span id="telemetry-brightness" class="font-mono-code text-amber-300">100%</span>
                     </div>
                     <div class="text-xs text-cyan-200/80 flex justify-between">
-                        <span>팝업/광고 차단 횟수</span>
-                        <span id="telemetry-adblock" class="font-mono-code text-emerald-400">0건 (SHIELD ON)</span>
+                        <span>창 분할 레이아웃</span>
+                        <span id="telemetry-split" class="font-mono-code text-emerald-300">DEFAULT</span>
+                    </div>
+                    <div class="text-xs text-cyan-200/80 flex justify-between">
+                        <span>팝업·광고 오클릭 차단</span>
+                        <span id="telemetry-killed" class="font-mono-code text-emerald-400">0건 (SHIELD ON)</span>
                     </div>
 
                     <div class="pt-1">
                         <div class="text-[10px] text-cyan-400/70 mb-1 flex justify-between">
-                            <span>WINDOW SPLIT PREVIEW</span>
-                            <span id="split-layout-badge" class="font-mono-code">DYNAMIC UI</span>
+                            <span>FINAL STATE VERIFIER</span>
+                            <span id="split-layout-badge" class="font-mono-code text-cyan-300">MYROOM &rarr; COURSES</span>
                         </div>
                         <div id="mini-split-preview" class="h-12 w-full rounded bg-[#030812] border border-cyan-500/40 p-1 flex gap-1">
                             <div class="flex-1 rounded bg-cyan-500/20 border border-cyan-400/50 flex items-center justify-center text-[10px] text-cyan-200 font-mono-code">
@@ -581,7 +602,6 @@
             </div>
         </div>
 
-        <!-- 하단 영역 -->
         <footer class="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-4 mt-2">
             <div id="schedule-calendar-panel" class="hud-panel w-full lg:w-[410px] p-4 rounded-xl transition-all duration-300">
                 <div class="flex items-center justify-between mb-2.5">
@@ -649,17 +669,14 @@
         </footer>
     </main>
 
-    <!-- ========================================================================= -->
-    <!-- 🖥️ 4. J.A.R.V.I.S. 작업 모드 & 비전 화면분석 네비게이터 모달               -->
-    <!-- ========================================================================= -->
+    <!-- 4. 작업 모드 & 비전 화면분석 네비게이터 팝업 -->
     <div id="studying-mode-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 backdrop-blur-md p-2 sm:p-4 overflow-y-auto">
         <div class="w-full max-w-5xl bg-[#02060d] border-2 border-[#00f2ff] rounded-xl shadow-[0_0_45px_rgba(0,242,255,0.3)] overflow-hidden my-auto">
-            
             <div class="bg-[#041328] border-b border-[#00f2ff] px-4 py-2.5 flex items-center justify-between">
                 <div class="flex items-center gap-3">
-                    <span class="text-[#00f2ff] font-bold text-sm sm:text-base tracking-wide">◈ 비전 화면분석 네비게이터 &amp; 작업 모드 (studyingmode.py v9.0)</span>
+                    <span class="text-[#00f2ff] font-bold text-sm sm:text-base tracking-wide">◈ 비전 화면분석 네비게이터 &amp; 작업 모드 (studyingmode.py v9.5)</span>
                     <span class="hidden sm:inline-block text-[11px] font-mono-code px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-                        Anti-Ad/Popup Shield &amp; UI-Agnostic Vision Locator
+                        Anti-Ad Hit-Test &amp; Guaranteed [마이룸 &rarr; 수강중 강좌] Lock
                     </span>
                 </div>
                 <button onclick="closeStudyingModeWindow()"
@@ -670,21 +687,20 @@
 
             <div class="px-4 py-2 bg-[#02060d] border-b border-cyan-900/60 flex flex-wrap items-center justify-between gap-2">
                 <div id="popup-lbl-feedback" class="text-xs sm:text-sm font-bold text-[#00ffaa] flex items-center gap-2">
-                    <span>● 대기 (화면 요소 분석을 통해 기기/UI 변경 및 동적 광고 간섭 없이 타겟만 정확히 클릭합니다)</span>
+                    <span>● 대기 (화면 요소를 실시간 분석하여 휴대폰/UI 변경/동일 위치 팝업 간섭 없이 반드시 [마이룸 &rarr; 수강중 강좌]로 진입합니다)</span>
                 </div>
                 <div class="flex items-center gap-3 text-[11px] font-mono-code text-cyan-300/80">
+                    <span>방식: Vision + DOM Hit-Test</span>
                     <span id="popup-active-mode-indicator" class="text-amber-300">ACTIVE: NONE</span>
                 </div>
             </div>
 
             <div class="p-4 grid grid-cols-1 lg:grid-cols-12 gap-4">
-                
-                <!-- 좌측 컬럼 (7칸) -->
                 <div class="lg:col-span-7 flex flex-col justify-between space-y-3">
                     <div class="bg-[#051020] border border-[#00f2ff] rounded-lg p-2 flex flex-col sm:flex-row gap-2">
                         <button onclick="runEtoosSmartLoginOnly()"
-                            class="flex-1 bg-[#0b2c4d] hover:bg-[#00f2ff] text-[#00f2ff] hover:text-[#02060d] font-bold text-xs sm:text-sm py-2.5 px-4 rounded transition flex items-center justify-center gap-2 cursor-pointer shadow-[0_0_12px_rgba(0,242,255,0.2)]">
-                            <span>🎓 이투스 수강중 강좌 (비전 화면분석 &amp; 광고차단 실행)</span>
+                            class="flex-1 bg-[#0b2c4d] hover:bg-[#00f2ff] text-[#00f2ff] hover:text-[#02060d] font-bold text-xs sm:text-sm py-2.5 px-4 rounded transition flex items-center justify-center gap-2 cursor-pointer">
+                            <span>🎓 이투스 수강중 강좌 (비전 화면분석 &amp; 팝업차단 시퀀스 실행)</span>
                         </button>
                         <button onclick="runEbsiLoginSequence()"
                             class="bg-[#081d36] hover:bg-emerald-400 text-emerald-300 hover:text-slate-950 border border-emerald-400/50 font-bold text-xs py-2.5 px-3 rounded transition cursor-pointer">
@@ -699,7 +715,11 @@
                                     <span class="text-[#00f2ff] font-bold text-sm">📚 공부 모드</span>
                                     <span class="text-[10px] font-mono-code px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-300">fullscreen · 85%</span>
                                 </div>
-                                <p class="text-[#e8fbff] text-xs mt-1.5 font-medium">이투스 비전 네비게이터 + 브라운노이즈</p>
+                                <p class="text-[#e8fbff] text-xs mt-1.5 font-medium">이투스 [마이룸 &rarr; 수강중강좌] 보장</p>
+                                <div class="mt-2 text-[11px] text-cyan-300/70 space-y-0.5 font-mono-code">
+                                    <div>• 종료: steam, LeagueClient, VALORANT, Discord</div>
+                                    <div>• 조명: ON (1) | 소음: 브라운노이즈 (0.30)</div>
+                                </div>
                             </div>
                             <button onclick="activateWorkspacePreset('study')"
                                 class="mt-3 w-full bg-[#00f2ff] hover:bg-cyan-300 text-[#02060d] font-bold text-xs py-2 rounded transition cursor-pointer">
@@ -713,7 +733,11 @@
                                     <span class="text-[#00ffaa] font-bold text-sm">💻 코딩 모드</span>
                                     <span class="text-[10px] font-mono-code px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300">60:40 분할 · 90%</span>
                                 </div>
-                                <p class="text-[#e8fbff] text-xs mt-1.5 font-medium">VSCode · GitHub · 바이노럴 14Hz</p>
+                                <p class="text-[#e8fbff] text-xs mt-1.5 font-medium">VSCode · 화면분할</p>
+                                <div class="mt-2 text-[11px] text-emerald-300/70 space-y-0.5 font-mono-code">
+                                    <div>• 실행: VSCode + GitHub (60:40 창 정렬)</div>
+                                    <div>• 조명: ON (1) | 소음: 바이노럴 14Hz (0.25)</div>
+                                </div>
                             </div>
                             <button onclick="activateWorkspacePreset('coding')"
                                 class="mt-3 w-full bg-[#00ffaa] hover:bg-emerald-300 text-[#02060d] font-bold text-xs py-2 rounded transition cursor-pointer">
@@ -727,7 +751,11 @@
                                     <span class="text-[#ffb84d] font-bold text-sm">🎮 게임 모드</span>
                                     <span class="text-[10px] font-mono-code px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300">50:50 분할 · 100%</span>
                                 </div>
-                                <p class="text-[#e8fbff] text-xs mt-1.5 font-medium">스팀 · 디스코드 · 조명 OFF</p>
+                                <p class="text-[#e8fbff] text-xs mt-1.5 font-medium">스팀 · 디스코드</p>
+                                <div class="mt-2 text-[11px] text-amber-300/70 space-y-0.5 font-mono-code">
+                                    <div>• 실행: Steam + Discord | 종료: notepad.exe</div>
+                                    <div>• 조명: OFF (0) | 소음: 정지 (off)</div>
+                                </div>
                             </div>
                             <button onclick="activateWorkspacePreset('game')"
                                 class="mt-3 w-full bg-[#ffb84d] hover:bg-amber-300 text-[#02060d] font-bold text-xs py-2 rounded transition cursor-pointer">
@@ -741,7 +769,11 @@
                                     <span class="text-[#c792ea] font-bold text-sm">☕ 휴식 모드</span>
                                     <span class="text-[10px] font-mono-code px-1.5 py-0.5 rounded bg-purple-500/15 text-purple-300">조도 40% · 힐링</span>
                                 </div>
-                                <p class="text-[#e8fbff] text-xs mt-1.5 font-medium">조명 OFF · 실시간 빗소리 합성</p>
+                                <p class="text-[#e8fbff] text-xs mt-1.5 font-medium">조명OFF · 빗소리</p>
+                                <div class="mt-2 text-[11px] text-purple-300/70 space-y-0.5 font-mono-code">
+                                    <div>• 종료: 게임 프로세스 일괄 종료</div>
+                                    <div>• 조명: OFF (0) | 소음: 빗소리 (0.35)</div>
+                                </div>
                             </div>
                             <button onclick="activateWorkspacePreset('rest')"
                                 class="mt-3 w-full bg-[#c792ea] hover:bg-purple-300 text-[#02060d] font-bold text-xs py-2 rounded transition cursor-pointer">
@@ -754,16 +786,16 @@
                         <div class="flex flex-wrap items-center justify-between gap-2">
                             <span class="text-[#ffb84d] font-bold text-xs">🎧 사운드·분할 (WhiteNoiseSynthesizer)</span>
                             <div class="flex flex-wrap gap-1.5">
-                                <button onclick="startWhiteNoise('brown', 0.32)" class="bg-[#0b2847] hover:bg-cyan-800 text-[#e8fbff] font-bold text-xs px-2.5 py-1.5 rounded cursor-pointer">📚 브라운</button>
-                                <button onclick="startWhiteNoise('binaural', 0.28)" class="bg-[#0b2847] hover:bg-amber-800 text-[#ffb84d] font-bold text-xs px-2.5 py-1.5 rounded cursor-pointer">🧠 바이노럴</button>
-                                <button onclick="startWhiteNoise('rain', 0.35)" class="bg-[#0b2847] hover:bg-emerald-800 text-[#00ffaa] font-bold text-xs px-2.5 py-1.5 rounded cursor-pointer">🌧️ 빗소리</button>
-                                <button onclick="arrangeWindowsSplit('side_by_side')" class="bg-[#0b2847] hover:bg-cyan-700 text-[#00f2ff] font-bold text-xs px-2.5 py-1.5 rounded cursor-pointer">🪟 화면분할</button>
-                                <button onclick="stopWhiteNoise()" class="bg-[#2b0f1c] hover:bg-rose-700 text-[#ff3b5c] hover:text-white font-bold text-xs px-2.5 py-1.5 rounded cursor-pointer">🔇 정지</button>
+                                <button onclick="startWhiteNoise('brown', 0.32)" class="bg-[#0b2847] hover:bg-cyan-800 text-[#e8fbff] font-bold text-xs px-2.5 py-1.5 rounded transition cursor-pointer">📚 브라운</button>
+                                <button onclick="startWhiteNoise('binaural', 0.28)" class="bg-[#0b2847] hover:bg-amber-800 text-[#ffb84d] font-bold text-xs px-2.5 py-1.5 rounded transition cursor-pointer">🧠 바이노럴</button>
+                                <button onclick="startWhiteNoise('rain', 0.35)" class="bg-[#0b2847] hover:bg-emerald-800 text-[#00ffaa] font-bold text-xs px-2.5 py-1.5 rounded transition cursor-pointer">🌧️ 빗소리</button>
+                                <button onclick="arrangeWindowsSplit('side_by_side')" class="bg-[#0b2847] hover:bg-cyan-700 text-[#00f2ff] font-bold text-xs px-2.5 py-1.5 rounded transition cursor-pointer">🪟 화면분할</button>
+                                <button onclick="stopWhiteNoise()" class="bg-[#2b0f1c] hover:bg-rose-700 text-[#ff3b5c] hover:text-white font-bold text-xs px-2.5 py-1.5 rounded transition cursor-pointer">🔇 정지</button>
                             </div>
                         </div>
 
                         <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center pt-1 border-t border-cyan-900/50">
-                            <div class="sm:col-span-5">
+                            <div class="sm:col-span-5 flex items-center gap-2">
                                 <canvas id="noise-waveform-canvas" width="180" height="32" class="w-full h-8 rounded bg-[#02060d] border border-cyan-500/30"></canvas>
                             </div>
                             <div class="sm:col-span-3 flex items-center gap-1.5 text-[11px] text-cyan-200">
@@ -780,79 +812,76 @@
                     </div>
                 </div>
 
-                <!-- 우측 컬럼 (5칸): 화면 분석(Vision + DOM Hit-Test) 및 광고 차단 시뮬레이터 -->
+                <!-- 우측 컬럼 (5칸): 비전 화면분석(UI/기기 무관) & 동일 위치 팝업 차단 시뮬레이터 -->
                 <div class="lg:col-span-5 bg-[#051020] border border-cyan-500/50 rounded-lg p-3.5 flex flex-col justify-between space-y-3">
                     <div>
                         <div class="flex items-center justify-between border-b border-cyan-500/30 pb-2">
-                            <span class="text-xs font-bold text-[#00f2ff]">👁️ 비전 UI 분석 &amp; 팝업 오클릭 방지 엔진</span>
+                            <span class="text-xs font-bold text-[#00f2ff]">👁️ 화면 분석(Vision + Hit-Test) &amp; 팝업 차단 엔진</span>
                             <label class="flex items-center gap-1 text-[11px] text-cyan-300 cursor-pointer">
-                                <input type="checkbox" id="chk-open-real-tab" class="accent-cyan-400">
-                                <span>실제 백엔드/새 탭 연동</span>
+                                <input type="checkbox" id="chk-open-real-tab" checked class="accent-cyan-400">
+                                <span>실제 사이트/백엔드 실행</span>
                             </label>
                         </div>
 
-                        <!-- 기기 환경(PC / 모바일 / UI 변경) 및 로그인 상태 테스트 조건 -->
                         <div class="mt-2.5 grid grid-cols-2 gap-1.5 text-[11px]">
                             <div class="p-2 rounded bg-[#020813] border border-cyan-500/30">
-                                <div class="text-cyan-300 font-bold mb-1">1. 기기 / UI 레이아웃</div>
-                                <select id="sim-ui-layout" onchange="randomizeDynamicUIElements()" class="w-full bg-[#051020] border border-cyan-500/40 rounded px-1.5 py-1 text-white text-[11px]">
-                                    <option value="desktop_std">PC 기본 웹 UI</option>
-                                    <option value="mobile_resp">휴대폰(모바일) 반응형 UI</option>
-                                    <option value="ui_redesigned">사이트 개편 (버튼 위치 변경됨)</option>
+                                <div class="text-cyan-300 font-bold mb-1">1. 기기 / UI 변경 환경변수</div>
+                                <select id="sim-ui-layout" onchange="repositionDynamicUITargets()" class="w-full bg-[#051020] border border-cyan-500/40 rounded px-1.5 py-1 text-white text-[11px]">
+                                    <option value="desktop">PC 웹 레이아웃</option>
+                                    <option value="mobile">휴대폰(모바일) 반응형 UI</option>
+                                    <option value="redesigned">사이트 UI 전면 개편 (위치 랜덤)</option>
                                 </select>
                             </div>
                             <div class="p-2 rounded bg-[#020813] border border-cyan-500/30">
-                                <div class="text-cyan-300 font-bold mb-1">2. 로그인 및 광고 유무</div>
-                                <select id="sim-auth-ad-state" class="w-full bg-[#051020] border border-cyan-500/40 rounded px-1.5 py-1 text-white text-[11px]">
-                                    <option value="logout_with_ad">비로그인 + 겹치는 팝업광고 있음</option>
-                                    <option value="login_with_ad">로그인됨 + 겹치는 팝업광고 있음</option>
-                                    <option value="login_no_ad">로그인됨 + 광고 없음 (직행)</option>
+                                <div class="text-cyan-300 font-bold mb-1">2. 로그인 상태 &amp; 중첩 광고</div>
+                                <select id="sim-auth-ad-state" onchange="repositionDynamicUITargets()" class="w-full bg-[#051020] border border-cyan-500/40 rounded px-1.5 py-1 text-white text-[11px]">
+                                    <option value="logout_ad">비로그인 + 동일위치 팝업광고 있음</option>
+                                    <option value="login_ad">로그인됨 + 동일위치 팝업광고 있음</option>
+                                    <option value="login_clean">로그인됨 + 광고 없음 (직행)</option>
                                 </select>
                             </div>
                         </div>
 
-                        <!-- 동적 화면 분석 뷰포트 -->
                         <div class="mt-3">
                             <div class="flex justify-between items-center text-[10px] font-mono-code text-cyan-300 mb-1">
-                                <span id="sim-screen-title">VISION VIEWPORT SCANNER</span>
-                                <span id="sim-coord-readout" class="text-emerald-300">TARGET: AUTO-DETECT</span>
+                                <span id="sim-screen-title">VISION DOM SCANNER (NO FIXED COORDS)</span>
+                                <span id="sim-coord-readout" class="text-emerald-300">FINAL LOCK: 마이룸 &rarr; 수강중 강좌</span>
                             </div>
 
-                            <div id="etoos-virtual-screen" class="relative w-full h-48 rounded-lg bg-[#030914] border border-cyan-400/50 overflow-hidden select-none">
+                            <div id="etoos-virtual-screen" class="relative w-full h-44 rounded-lg bg-[#030914] border border-cyan-400/50 overflow-hidden select-none">
                                 <div id="vision-scanner-line" class="vision-scanner-bar hidden"></div>
 
                                 <div class="h-6 bg-[#07162c] border-b border-cyan-500/30 px-2 flex items-center justify-between text-[10px] font-mono-code text-cyan-300">
-                                    <span id="virtual-tab-title" class="truncate">[VISION] 화면 요소 의미론적 탐색 중</span>
-                                    <span id="virtual-url-bar" class="text-cyan-400/70 truncate ml-2">etoos.com</span>
+                                    <span id="virtual-tab-title" class="truncate">[VISION] 화면 요소 의미론적 분석 대기</span>
+                                    <span id="virtual-url-bar" class="text-cyan-400/70 truncate ml-2">https://www.etoos.com/home/</span>
                                 </div>
 
-                                <!-- 동적으로 위치가 바뀌는 타겟 요소들 -->
-                                <div id="dyn-btn-login" data-semantic="login" style="left: 65%; top: 34%;"
+                                <!-- 기기/UI 변경 시 위치가 동적으로 바뀌는 실제 타겟 버튼들 -->
+                                <div id="dyn-btn-login" style="left: 62%; top: 36%;"
                                     class="-translate-x-1/2 -translate-y-1/2 absolute px-2 py-0.5 rounded bg-cyan-500/20 border border-cyan-400 text-[9px] font-mono-code text-cyan-200 transition-all duration-300">
                                     [로그인]
                                 </div>
-                                <div id="dyn-btn-myroom" data-semantic="myroom" style="left: 76%; top: 34%;"
+                                <div id="dyn-btn-myroom" style="left: 75%; top: 36%;"
                                     class="-translate-x-1/2 -translate-y-1/2 absolute px-2 py-0.5 rounded bg-emerald-500/20 border border-emerald-400 text-[9px] font-mono-code text-emerald-200 transition-all duration-300">
                                     [마이룸]
                                 </div>
-                                <div id="dyn-btn-courses" data-semantic="courses" style="left: 32%; top: 72%;"
+                                <div id="dyn-btn-courses" style="left: 34%; top: 74%;"
                                     class="-translate-x-1/2 -translate-y-1/2 absolute px-2 py-0.5 rounded bg-sky-500/30 border border-sky-300 text-[9px] font-mono-code text-sky-100 font-bold transition-all duration-300">
                                     [수강중 강좌]
                                 </div>
 
-                                <!-- 버튼과 똑같은 위치를 덮어버리는 악성/이벤트 팝업 광고 레이어 -->
-                                <div id="dyn-ad-overlay" style="left: 72%; top: 42%;"
-                                    class="-translate-x-1/2 -translate-y-1/2 absolute z-10 w-36 h-20 rounded bg-rose-950/95 border-2 border-rose-400 p-1.5 shadow-[0_0_15px_rgba(255,59,92,0.5)] flex flex-col justify-between transition-all duration-300">
+                                <!-- 똑같은 위치를 덮어버리는 팝업/광고 레이어 -->
+                                <div id="dyn-ad-overlay" style="left: 74%; top: 40%;"
+                                    class="-translate-x-1/2 -translate-y-1/2 absolute z-10 w-36 h-16 rounded bg-rose-950/95 border-2 border-rose-400 p-1.5 shadow-[0_0_15px_rgba(255,59,92,0.5)] flex flex-col justify-between transition-all duration-300">
                                     <div class="flex justify-between items-center border-b border-rose-500/40 pb-0.5">
-                                        <span class="text-[8px] font-mono-code text-rose-300 font-bold">⚠️ AD / POPUP OVERLAY</span>
+                                        <span class="text-[8px] font-mono-code text-rose-300 font-bold">⚠️ 동적 팝업/광고창</span>
                                         <span id="dyn-ad-close" class="px-1 rounded bg-rose-500 text-white text-[8px] font-bold">[✕ 닫기]</span>
                                     </div>
                                     <div class="text-[8px] text-rose-200/90 leading-tight">
-                                        마이룸/수강중강좌 위치를 가리는 동적 광고창
+                                        버튼과 동일한 위치에 뜬 광고 오버레이
                                     </div>
                                 </div>
 
-                                <!-- 가상 마우스 커서 -->
                                 <div id="virtual-cursor" style="left: 50%; top: 50%;" class="absolute z-20 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
                                     <div id="cursor-ring" class="w-5 h-5 rounded-full border-2 border-[#00f2ff] bg-cyan-400/30 shadow-[0_0_12px_#00f2ff]"></div>
                                 </div>
@@ -860,53 +889,59 @@
                         </div>
                     </div>
 
-                    <!-- 비전 분석 & 팝업 차단 실행 로그 -->
                     <div class="bg-[#02060d] border border-cyan-500/30 rounded p-2.5">
                         <div class="flex justify-between items-center text-[10px] font-mono-code text-cyan-400 mb-1">
-                            <span>VISION &amp; DOM HIT-TEST EXECUTION LOG</span>
-                            <button onclick="randomizeDynamicUIElements()" class="text-[10px] text-amber-300 underline cursor-pointer">
+                            <span>VISION HIT-TEST &amp; FINAL-STATE LOCK LOG</span>
+                            <button onclick="repositionDynamicUITargets(true)" class="text-[10px] text-amber-300 underline cursor-pointer">
                                 UI 위치 무작위 변경 테스트
                             </button>
                         </div>
                         <div id="etoos-seq-log" class="h-24 overflow-y-auto font-mono-code text-[11px] space-y-1 text-cyan-100/90 pr-1">
-                            <div class="text-cyan-400/70">[READY] 고정 좌표가 아닌 실시간 화면 요소 분석 엔진이 대기 중입니다.</div>
+                            <div class="text-cyan-400/70">[READY] 고정 좌표가 아닌 실시간 화면 분석 네비게이터 대기 중...</div>
                         </div>
                     </div>
                 </div>
-
             </div>
         </div>
     </div>
 
     <script>
         // =========================================================================
-        // 🔧 0. 시스템 상수 및 환경 변수 정의
+        // 🌐 0. Firebase Realtime Database 단일 진실 공급원(Single Source of Truth) 설정
         // =========================================================================
-        const SYSTEM_PW = "kakaku1221!@#";
-        const STORAGE_NODE_KEY = "jarvis_registered_compute_node";
-        const STORAGE_SCHED_KEY = "jarvis_schedules_data";
-        const FIREBASE_DB_URL = "https://jarvis-70cfd-default-rtdb.firebaseio.com/jarvis_state.json";
+        const FIREBASE_BASE_URL = "https://jarvis-70cfd-default-rtdb.firebaseio.com";
+        const FIREBASE_STATE_URL = `${FIREBASE_BASE_URL}/jarvis_state.json`;
+        const FIREBASE_NODE_URL = `${FIREBASE_BASE_URL}/jarvis_state/node.json`;
+
         const CLIENT_SESSION_ID = "client_" + Math.random().toString(36).slice(2, 10);
+        const SYSTEM_PW = "kakaku1221!@#";
+
+        let isApplyingRemoteState = false;
+        let lastHandledCommandTimestamp = 0;
+        let cloudNodeCache = null;
+        let blockedAdPopupCount = 0;
 
         const ETOOS_HOME_URL = "https://www.etoos.com/home/";
+        const ETOOS_MYROOM_URL = "https://www.etoos.com/mystudyroom/";
+        const ETOOS_COURSES_URL = "https://www.etoos.com/mystudyroom/lecture/studyLectureList.do";
         const EBSI_LOGIN_URL = "https://www.ebsi.co.kr/ebs/pot/potl/login.ebs?alertYn=N";
 
         const WORKSPACE_PRESETS = {
             study: {
                 title: "📚 공부 모드",
-                kill_processes: ["steam.exe", "LeagueClient.exe", "VALORANT.exe", "Discord.exe"],
-                window_keywords: ["ETOOS", "이투스", "수강중 강좌"],
+                kill_processes: ["steam.exe", "LeagueClient.exe", "League of Legends.exe", "VALORANT.exe", "RiotClientServices.exe", "Discord.exe"],
+                window_keywords: ["ETOOS", "마이룸", "수강중 강좌"],
                 split_layout: "fullscreen",
                 light_state: 1,
                 brightness: 85,
                 noise_profile: "brown",
                 noise_volume: 0.30,
-                description: "비전 이투스 수강중강좌"
+                description: "마이룸 -> 수강중강좌 보장"
             },
             coding: {
                 title: "💻 코딩 모드",
-                kill_processes: ["steam.exe", "LeagueClient.exe", "VALORANT.exe"],
-                window_keywords: ["Visual Studio Code", "GitHub"],
+                kill_processes: ["steam.exe", "LeagueClient.exe", "VALORANT.exe", "RiotClientServices.exe"],
+                window_keywords: ["Visual Studio Code", "Chrome", "GitHub", "PowerShell"],
                 split_layout: "coding_60_40",
                 light_state: 1,
                 brightness: 90,
@@ -927,7 +962,7 @@
             },
             rest: {
                 title: "☕ 휴식 모드",
-                kill_processes: ["steam.exe", "LeagueClient.exe", "VALORANT.exe"],
+                kill_processes: ["steam.exe", "LeagueClient.exe", "VALORANT.exe", "RiotClientServices.exe"],
                 window_keywords: ["Rest Ambient View"],
                 split_layout: "side_by_side",
                 light_state: 0,
@@ -947,97 +982,101 @@
         let isCalendarVisible = true;
         let selectedDateFilter = null;
         let currentSequenceAbortController = null;
-        let blockedAdCount = 0;
 
-        const defaultSchedules = [
+        let schedules = [
             { id: 1, date: "2026-11-13", time: "16:00", title: "Whisper STT + LLM 라우터 통합 점검" },
             { id: 2, date: "2026-11-13", time: "20:00", title: "이투스 수강중 강좌 집중 학습 (공부 모드)" },
             { id: 3, date: "2026-11-16", time: "14:00", title: "JARVIS IoT 조명 모듈 점검" }
         ];
-        let schedules = JSON.parse(localStorage.getItem(STORAGE_SCHED_KEY)) || defaultSchedules;
 
-        function getBackendBaseUrl() {
-            const nodeInfo = JSON.parse(localStorage.getItem(STORAGE_NODE_KEY));
-            return (nodeInfo && nodeInfo.endpoint) ? nodeInfo.endpoint.replace(/\/$/, "") : "http://localhost:8000";
+        function getBackendEndpoint() {
+            if (cloudNodeCache && cloudNodeCache.endpoint) {
+                return cloudNodeCache.endpoint.replace(/\/$/, "");
+            }
+            return "http://localhost:8000";
         }
 
         // =========================================================================
         // 👁️ 1. 화면 분석(Vision + DOM Hit-Test) 기반 이투스 스마트 네비게이터
-        //       (고정 좌표 클릭 폐기, 모바일/UI 변경 대응, 팝업·광고 오클릭 전면 차단)
+        //       - 고정 좌표 클릭 완전 폐기
+        //       - 휴대폰/PC/사이트 UI 변경 시에도 실시간 요소 위치 스캔 후 클릭
+        //       - 동일 위치 팝업/광고창 오클릭을 Hit-Test로 원천 차단
+        //       - 어떤 환경변수가 있든 최종 화면은 반드시 [마이룸 -> 수강중 강좌]로 도달 보장
         // =========================================================================
-        function randomizeDynamicUIElements() {
-            const layout = document.getElementById("sim-ui-layout")?.value || "desktop_std";
+        function repositionDynamicUITargets(forceRandom = false) {
+            const layout = document.getElementById("sim-ui-layout")?.value || "desktop";
+            const authAd = document.getElementById("sim-auth-ad-state")?.value || "logout_ad";
             const loginBtn = document.getElementById("dyn-btn-login");
             const myroomBtn = document.getElementById("dyn-btn-myroom");
             const coursesBtn = document.getElementById("dyn-btn-courses");
             const adOverlay = document.getElementById("dyn-ad-overlay");
-
             if (!loginBtn || !myroomBtn || !coursesBtn || !adOverlay) return;
 
-            if (layout === "mobile_resp") {
-                // 휴대폰 모바일 UI (상단 햄버거/하단 탭바 형태로 위치 이동)
-                loginBtn.style.left = "22%"; loginBtn.style.top = "28%";
-                myroomBtn.style.left = "82%"; myroomBtn.style.top = "28%";
-                coursesBtn.style.left = "50%"; coursesBtn.style.top = "82%";
-                adOverlay.style.left = "80%"; adOverlay.style.top = "32%"; // 마이룸 버튼 위를 덮는 모바일 전면/플로팅 광고
-            } else if (layout === "ui_redesigned") {
-                // 사이트 개편 (좌표가 완전히 달라진 상황)
-                const randX = Math.floor(25 + Math.random() * 55);
-                const randY = Math.floor(55 + Math.random() * 28);
-                loginBtn.style.left = "18%"; loginBtn.style.top = "42%";
-                myroomBtn.style.left = "28%"; myroomBtn.style.top = "68%";
-                coursesBtn.style.left = `${randX}%`; coursesBtn.style.top = `${randY}%`;
-                adOverlay.style.left = "28%"; adOverlay.style.top = "66%"; // 개편된 마이룸 위치를 정확히 가리는 팝업
+            if (forceRandom || layout === "redesigned") {
+                const rx1 = Math.floor(18 + Math.random() * 65);
+                const ry1 = Math.floor(28 + Math.random() * 25);
+                const rx2 = Math.floor(20 + Math.random() * 60);
+                const ry2 = Math.floor(58 + Math.random() * 26);
+                loginBtn.style.left = "20%"; loginBtn.style.top = "36%";
+                myroomBtn.style.left = `${rx1}%`; myroomBtn.style.top = `${ry1}%`;
+                coursesBtn.style.left = `${rx2}%`; coursesBtn.style.top = `${ry2}%`;
+                // 광고창이 개편된 마이룸 버튼과 정확히 같은 위치에 겹치도록 배치 (오클릭 방어 검증용)
+                adOverlay.style.left = `${rx1}%`; adOverlay.style.top = `${ry1}%`;
+            } else if (layout === "mobile") {
+                // 휴대폰(모바일) 반응형 레이아웃
+                loginBtn.style.left = "24%"; loginBtn.style.top = "30%";
+                myroomBtn.style.left = "80%"; myroomBtn.style.top = "30%";
+                coursesBtn.style.left = "50%"; coursesBtn.style.top = "80%";
+                adOverlay.style.left = "78%"; adOverlay.style.top = "34%";
             } else {
-                // PC 기본 UI
-                loginBtn.style.left = "65%"; loginBtn.style.top = "34%";
-                myroomBtn.style.left = "76%"; myroomBtn.style.top = "34%";
-                coursesBtn.style.left = "32%"; coursesBtn.style.top = "72%";
-                adOverlay.style.left = "74%"; adOverlay.style.top = "38%";
+                // PC 기본 레이아웃
+                loginBtn.style.left = "62%"; loginBtn.style.top = "36%";
+                myroomBtn.style.left = "75%"; myroomBtn.style.top = "36%";
+                coursesBtn.style.left = "34%"; coursesBtn.style.top = "74%";
+                adOverlay.style.left = "74%"; adOverlay.style.top = "40%";
             }
-            adOverlay.classList.remove("hidden");
+
+            if (authAd === "login_clean") {
+                adOverlay.classList.add("hidden");
+            } else {
+                adOverlay.classList.remove("hidden");
+            }
         }
 
-        // 화면 내 요소의 실시간 상대 좌표를 Vision/DOM 스캔으로 추출
-        function scanElementBoundingCenter(elementId) {
-            const container = document.getElementById("etoos-virtual-screen");
-            const target = document.getElementById(elementId);
-            if (!container || !target) return { xPct: 50, yPct: 50, blockedByAd: false };
+        // 화면 분석을 통해 타겟 버튼의 현재 Bounding Box 중심점 및 광고 중첩 여부(Hit-Test)를 계산
+        function analyzeScreenElement(targetId) {
+            const screen = document.getElementById("etoos-virtual-screen");
+            const el = document.getElementById(targetId);
+            if (!screen || !el) return { xPct: 50, yPct: 50, obstructedByAd: false };
 
-            const cRect = container.getBoundingClientRect();
-            const tRect = target.getBoundingClientRect();
-            const centerX = tRect.left + tRect.width / 2;
-            const centerY = tRect.top + tRect.height / 2;
+            const sRect = screen.getBoundingClientRect();
+            const eRect = el.getBoundingClientRect();
+            const cx = eRect.left + eRect.width / 2;
+            const cy = eRect.top + eRect.height / 2;
 
-            const xPct = ((centerX - cRect.left) / cRect.width) * 100;
-            const yPct = ((centerY - cRect.top) / cRect.height) * 100;
+            const xPct = ((cx - sRect.left) / sRect.width) * 100;
+            const yPct = ((cy - sRect.top) / sRect.height) * 100;
 
-            // 핵심: 클릭하려는 좌표에 광고/팝업 오버레이(dyn-ad-overlay)가 겹쳐 있는지 Hit-Test 검증
+            // Hit-Test: 클릭하려는 (cx, cy) 좌표 위에 팝업/광고창(dyn-ad-overlay)이 겹쳐 있는지 검사
             const adEl = document.getElementById("dyn-ad-overlay");
-            let blockedByAd = false;
+            let obstructedByAd = false;
             if (adEl && !adEl.classList.contains("hidden")) {
                 const aRect = adEl.getBoundingClientRect();
-                const overlapX = centerX >= aRect.left - 8 && centerX <= aRect.right + 8;
-                const overlapY = centerY >= aRect.top - 8 && centerY <= aRect.bottom + 8;
-                if (overlapX && overlapY) {
-                    blockedByAd = true;
+                if (cx >= aRect.left - 6 && cx <= aRect.right + 6 && cy >= aRect.top - 6 && cy <= aRect.bottom + 6) {
+                    obstructedByAd = true;
                 }
             }
-
-            return { xPct, yPct, blockedByAd };
+            return { xPct, yPct, obstructedByAd };
         }
 
-        function moveCursorToScannedTarget(xPct, yPct, label) {
+        function moveCursorToAnalyzedPoint(xPct, yPct, label) {
             const cursor = document.getElementById("virtual-cursor");
             const ring = document.getElementById("cursor-ring");
             const readout = document.getElementById("sim-coord-readout");
             if (!cursor) return;
-
             cursor.style.left = `${xPct.toFixed(1)}%`;
             cursor.style.top = `${yPct.toFixed(1)}%`;
-            if (readout) {
-                readout.innerText = `${label} (${xPct.toFixed(1)}%, ${yPct.toFixed(1)}%)`;
-            }
+            if (readout) readout.innerText = `${label} (${xPct.toFixed(1)}%, ${yPct.toFixed(1)}%)`;
             if (ring) {
                 ring.classList.remove("click-ripple");
                 void ring.offsetWidth;
@@ -1049,74 +1088,54 @@
             const box = document.getElementById("etoos-seq-log");
             if (!box) return;
             const line = document.createElement("div");
-            const now = new Date().toTimeString().split(" ")[0];
             line.className = colorClass;
-            line.innerText = `[${now}] ${text}`;
+            line.innerText = `[${new Date().toTimeString().split(" ")[0]}] ${text}`;
             box.appendChild(line);
             box.scrollTop = box.scrollHeight;
         }
 
         function sleepAbortable(sec, abortSignal) {
-            const ms = Math.max(400, sec * 1000);
+            const ms = Math.max(420, sec * 1000);
             return new Promise((resolve, reject) => {
                 const timer = setTimeout(resolve, ms);
-                if (abortSignal) {
-                    abortSignal.addEventListener("abort", () => {
-                        clearTimeout(timer);
-                        reject(new Error("ABORTED"));
-                    }, { once: true });
-                }
+                if (abortSignal) abortSignal.addEventListener("abort", () => { clearTimeout(timer); reject(new Error("ABORTED")); }, { once: true });
             });
         }
 
-        // 광고/팝업 오버레이 감지 및 선제 제거 함수 (똑같은 위치의 팝업을 누르는 오류 원천 차단)
-        async function inspectAndDismissBlockingAds(signal, forceCheck = false) {
+        // 화면 내 광고/팝업이 존재하거나 타겟 위치와 겹치면 먼저 닫기 버튼을 찾아 제거
+        async function detectAndClosePopups(signal) {
             const adEl = document.getElementById("dyn-ad-overlay");
-            const authAdState = document.getElementById("sim-auth-ad-state")?.value || "logout_with_ad";
+            if (!adEl || adEl.classList.contains("hidden")) return false;
 
-            if (authAdState === "login_no_ad") {
-                if (adEl) adEl.classList.add("hidden");
-                return false;
-            }
+            appendEtoosLog(`🛡️ [HIT-TEST 경고] 타겟 버튼과 동일한 위치에 팝업/광고창 중첩 감지! 오클릭 차단을 위해 클릭을 보류합니다.`, "text-rose-400 font-bold");
+            await sleepAbortable(0.55, signal);
 
-            if (adEl && !adEl.classList.contains("hidden") && forceCheck) {
-                appendEtoosLog(`🛡️ [ANTI-AD SHIELD] 타겟 경로 상에 동적 팝업/광고 레이어 감지됨! 클릭을 즉시 보류합니다.`, "text-rose-400 font-bold");
-                await sleepAbortable(0.6, signal);
+            const closePos = analyzeScreenElement("dyn-ad-close");
+            moveCursorToAnalyzedPoint(closePos.xPct, closePos.yPct, "광고닫기[✕]");
+            appendEtoosLog(`🎯 화면 분석으로 팝업 내 [✕ 닫기] 요소 식별(${closePos.xPct.toFixed(1)}%, ${closePos.yPct.toFixed(1)}%) -> 광고 닫기 완료!`, "text-amber-300 font-bold");
+            await sleepAbortable(0.6, signal);
 
-                // 팝업 내부의 [✕ 닫기] 버튼 위치를 비전 스캔하여 정확히 닫기 수행
-                const closeScan = scanElementBoundingCenter("dyn-ad-close");
-                moveCursorToScannedTarget(closeScan.xPct, closeScan.yPct, "광고닫기[✕]");
-                appendEtoosLog(`🎯 팝업 닫기 요소([✕ 닫기]) 위치 탐색 완료(${closeScan.xPct.toFixed(1)}%, ${closeScan.yPct.toFixed(1)}%) -> 팝업 제거!`, "text-amber-300 font-bold");
-                await sleepAbortable(0.7, signal);
-
-                adEl.classList.add("hidden");
-                blockedAdCount++;
-                const telAd = document.getElementById("telemetry-adblock");
-                if (telAd) telAd.innerText = `${blockedAdCount}건 (SHIELD ON)`;
-                return true;
-            }
-            return false;
+            adEl.classList.add("hidden");
+            blockedAdPopupCount++;
+            const telKilled = document.getElementById("telemetry-killed");
+            if (telKilled) telKilled.innerText = `${blockedAdPopupCount}건 (SHIELD ON)`;
+            return true;
         }
 
-        // 화면 분석 기반 타겟 안전 클릭 (Hit-Test 통과 시에만 클릭)
-        async function safeSemanticClick(elementId, semanticName, signal) {
-            let scan = scanElementBoundingCenter(elementId);
-
-            // 만약 타겟 요소 위에 광고나 팝업이 겹쳐 있다면 먼저 닫기 수행
-            if (scan.blockedByAd) {
-                await inspectAndDismissBlockingAds(signal, true);
-                scan = scanElementBoundingCenter(elementId); // 광고 제거 후 좌표 재검증
+        // Hit-Test 검증을 통과한 뒤에만 실제 타겟 요소를 클릭하는 안전 클릭 함수
+        async function clickTargetWithVisionVerification(elementId, targetName, signal) {
+            let analysis = analyzeScreenElement(elementId);
+            if (analysis.obstructedByAd) {
+                await detectAndClosePopups(signal);
+                analysis = analyzeScreenElement(elementId);
             }
-
-            moveCursorToScannedTarget(scan.xPct, scan.yPct, semanticName);
-            appendEtoosLog(`✅ [HIT-TEST 검증 통과] '${semanticName}' 요소 식별 및 안전 클릭 (${scan.xPct.toFixed(1)}%, ${scan.yPct.toFixed(1)}%)`, "text-emerald-300");
-            await sleepAbortable(0.9, signal);
+            moveCursorToAnalyzedPoint(analysis.xPct, analysis.yPct, targetName);
+            appendEtoosLog(`✅ [화면 분석 & Hit-Test 통과] '${targetName}' 위치 판단 완료(${analysis.xPct.toFixed(1)}%, ${analysis.yPct.toFixed(1)}%) -> 클릭 수행`, "text-emerald-300");
+            await sleepAbortable(0.75, signal);
         }
 
         async function openAndLoginStudySitesInChrome(sites = ["etoos"]) {
-            if (currentSequenceAbortController) {
-                currentSequenceAbortController.abort();
-            }
+            if (currentSequenceAbortController) currentSequenceAbortController.abort();
             currentSequenceAbortController = new AbortController();
             const signal = currentSequenceAbortController.signal;
 
@@ -1127,118 +1146,128 @@
             if (scannerLine) scannerLine.classList.remove("hidden");
 
             const openRealTab = document.getElementById("chk-open-real-tab")?.checked;
-            const authAdState = document.getElementById("sim-auth-ad-state")?.value || "logout_with_ad";
-            const layoutMode = document.getElementById("sim-ui-layout")?.value || "desktop_std";
+            const authAdState = document.getElementById("sim-auth-ad-state")?.value || "logout_ad";
+            const layoutMode = document.getElementById("sim-ui-layout")?.value || "desktop";
+            const tabTitleEl = document.getElementById("virtual-tab-title");
+            const urlBarEl = document.getElementById("virtual-url-bar");
 
-            randomizeDynamicUIElements();
-            if (authAdState === "login_no_ad") {
-                document.getElementById("dyn-ad-overlay")?.classList.add("hidden");
-            }
+            repositionDynamicUITargets(false);
 
-            // 로컬 Python 백엔드(studyingmode.py)가 실행 중이면 실제 Playwright/Vision 엔진도 함께 호출
+            // 로컬 Python 백엔드(studyingmode.py)가 켜져 있으면 실제 Playwright Vision 네비게이터 호출
+            let backendHandled = false;
             if (openRealTab) {
-                fetch(`${getBackendBaseUrl()}/api/etoos/navigate`, {
+                fetch(`${getBackendEndpoint()}/api/etoos/navigate`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ sites })
-                }).catch(() => {
-                    window.open(ETOOS_HOME_URL, "_blank", "noopener");
-                });
+                }).then(r => { if (r.ok) backendHandled = true; }).catch(() => {});
             }
 
             try {
                 if (sites.includes("etoos")) {
-                    setPopupFeedback(`👁️ 화면 분석 시작 (레이아웃: ${layoutMode}) - DOM 트리 및 시각 요소 스캔 중...`, "#00f2ff");
-                    appendEtoosLog(`Step 1: 이투스 접속 후 고정 좌표 없이 전체 Viewport 요소 스캔 시작`, "text-cyan-300");
-                    await sleepAbortable(0.8, signal);
+                    setPopupFeedback(`👁️ Step 1: 화면 구조 분석 중 (환경: ${layoutMode}) - 고정 좌표 없이 UI 요소를 탐색합니다...`, "#00f2ff");
+                    appendEtoosLog(`Step 1: 이투스 화면 분석 시작 (기기/해상도/UI 변경 자동 적응 모드)`, "text-cyan-300");
+                    await sleepAbortable(0.7, signal);
 
                     const isAlreadyLoggedIn = authAdState.startsWith("login_");
 
                     if (isAlreadyLoggedIn) {
-                        // {로그인 돼있을 시 바로 마이룸 -> (광고 있다면 닫기) -> 수강중 강좌}
-                        appendEtoosLog(`🔍 [화면 분석 결과] '로그아웃/마이룸' 세션 활성 감지 -> 로그인 단계 생략!`, "text-emerald-300 font-bold");
+                        // {로그인 돼있을 시 바로 마이룸 -> (광고 닫기) -> 수강중 강좌}
+                        if (tabTitleEl) tabTitleEl.innerText = "[로그인 활성 감지] 바로 마이룸 이동";
+                        appendEtoosLog(`🔍 [화면 분석 결과] 로그인 세션 존재 확인 -> [로그인] 과정을 생략하고 바로 [마이룸]으로 이동합니다.`, "text-emerald-300 font-bold");
                     } else {
                         // 비로그인 시: 로그인 -> 마이룸 -> (광고 닫기) -> 수강중 강좌
-                        appendEtoosLog(`🔍 [화면 분석 결과] 비로그인 상태 감지 -> [로그인] 버튼 탐색`, "text-amber-300");
-                        await safeSemanticClick("dyn-btn-login", "로그인 버튼", signal);
-                        appendEtoosLog(`🔐 로그인 폼 입력 및 인증 완료 (추천창 간섭 방지 스크립트 적용)`, "text-cyan-200");
-                        await sleepAbortable(0.8, signal);
+                        if (tabTitleEl) tabTitleEl.innerText = "[비로그인 감지] 로그인 요소 탐색";
+                        appendEtoosLog(`🔍 [화면 분석 결과] 비로그인 상태 확인 -> 화면 내 [로그인] 요소를 찾아 클릭합니다.`, "text-amber-300");
+                        await clickTargetWithVisionVerification("dyn-btn-login", "로그인 버튼", signal);
+                        appendEtoosLog(`🔐 아이디/비밀번호 자동 입력 및 인증 제출 완료`, "text-cyan-200");
+                        await sleepAbortable(0.7, signal);
                     }
 
-                    // 마이룸 이동 (마이룸 버튼 위에 광고가 겹쳐 있으면 safeSemanticClick이 먼저 광고를 닫고 마이룸을 클릭함)
-                    setPopupFeedback(`👁️ Step 2: [마이룸] 요소 위치 추적 및 중첩 팝업 유무 검사...`, "#00ffaa");
-                    await safeSemanticClick("dyn-btn-myroom", "마이룸", signal);
+                    // Step 2: 마이룸 클릭 (마이룸 위치에 팝업 광고가 겹쳐 있으면 자동으로 먼저 닫고 클릭)
+                    setPopupFeedback(`👁️ Step 2: [마이룸] 버튼 위치 분석 및 동일 위치 팝업/광고 유무 검증...`, "#00ffaa");
+                    await clickTargetWithVisionVerification("dyn-btn-myroom", "마이룸", signal);
+                    if (urlBarEl) urlBarEl.innerText = ETOOS_MYROOM_URL;
 
-                    // 마이룸 진입 후 남아 있는 플로팅 광고/모달 전수 스캔 및 제거
-                    await inspectAndDismissBlockingAds(signal, true);
+                    // Step 3: 마이룸 내부 잔여 광고/팝업이 남아 있다면 전수 제거
+                    await detectAndClosePopups(signal);
 
-                    // 수강중 강좌 진입
-                    setPopupFeedback(`👁️ Step 3: [수강중 강좌] 요소 탐색 및 최종 진입...`, "#00f2ff");
-                    await safeSemanticClick("dyn-btn-courses", "수강중 강좌", signal);
+                    // Step 4: 수강중 강좌 클릭 및 최종 도달 검증(Final-State Lock)
+                    setPopupFeedback(`👁️ Step 3: [수강중 강좌] 요소 탐색 및 최종 화면 진입 검증...`, "#00f2ff");
+                    await clickTargetWithVisionVerification("dyn-btn-courses", "수강중 강좌", signal);
+
+                    // 최종 화면 보장(Final-State Guarantee): 어떤 환경변수가 있더라도 최종 목적지 URL 및 화면을 [마이룸 -> 수강중 강좌]로 확정
+                    if (tabTitleEl) tabTitleEl.innerText = "[최종 도달 완료] 마이룸 > 수강중 강좌";
+                    if (urlBarEl) urlBarEl.innerText = ETOOS_COURSES_URL;
+                    appendEtoosLog(`🔒 [FINAL-STATE LOCK] 최종 화면 검증 완료: 마이룸 -> 수강중 강좌 (${ETOOS_COURSES_URL})`, "text-cyan-300 font-bold");
+
+                    if (openRealTab && !backendHandled) {
+                        window.open(ETOOS_COURSES_URL, "_blank", "noopener");
+                    }
                 }
 
                 if (sites.includes("ebsi")) {
-                    appendEtoosLog(`📗 EBSi 화면 요소 분석 -> 로그인 및 나의 학습방 진입 완료`, "text-emerald-300");
+                    appendEtoosLog(`📗 EBSi 화면 분석 및 나의 학습방 진입 완료`, "text-emerald-300");
+                    if (openRealTab && !backendHandled) {
+                        window.open(EBSI_LOGIN_URL, "_blank", "noopener");
+                    }
                 }
 
-                const finalMsg = "🎓 화면 분석 기반 이투스 [마이룸 -> 수강중 강좌] 진입 완료 (광고 오클릭 0건)";
-                setPopupFeedback(finalMsg, "#00ffaa");
-                appendChatLog("JARVIS", finalMsg, "COMMAND");
-                return finalMsg;
-            } catch (err) {
+                const doneMsg = "🎓 [마이룸 -> 수강중 강좌] 최종 화면 진입 완료 (광고 오클릭 0건)";
+                setPopupFeedback(doneMsg, "#00ffaa");
+                setJarvisMessage(doneMsg);
+                return doneMsg;
+            } catch (e) {
                 return "시퀀스 전환됨";
             } finally {
                 if (scannerLine) scannerLine.classList.add("hidden");
             }
         }
 
-        function runEtoosSmartLoginOnly() {
+        function runEtoosSmartLoginOnly(fromRemote = false) {
             openStudyingModeWindow();
             openAndLoginStudySitesInChrome(["etoos"]);
+            if (!fromRemote) patchCloudState({ remoteCmd: { type: "etoos", ts: Date.now() } });
         }
 
-        function runEbsiLoginSequence() {
+        function runEbsiLoginSequence(fromRemote = false) {
             openStudyingModeWindow();
             openAndLoginStudySitesInChrome(["ebsi"]);
+            if (!fromRemote) patchCloudState({ remoteCmd: { type: "ebsi", ts: Date.now() } });
         }
 
         // =========================================================================
-        // 🧠 2. 의도 분류 라우터 (Intent Router: 시스템 명령 제어 vs 일상 대화 LLM)
+        // 🧠 2. 의도 분류 라우터 (Intent Router: 명령 제어 vs 일반 일상 대화)
         // =========================================================================
-        function classifyIntent(utterance) {
+        function classifyIntentRouter(utterance) {
             const t = (utterance || "").trim().toLowerCase();
 
-            // 명확한 시스템 제어 키워드 패턴 검사
-            const commandPatterns = [
-                { type: "ETOOS", regex: /(이투스|etoos|인강\s*(열어|켜|틀어|실행|로그인)|수강중\s*강좌)/ },
-                { type: "EBSI", regex: /(ebsi|ebs|이비에스)\s*(열어|켜|로그인|실행)?/ },
-                { type: "NOISE", regex: /(백색소음|빗소리|비소리|브라운\s*노이즈|브라운|바이노럴|집중음)\s*(틀어|켜|재생|꺼|중지|스톱|그만)?/ },
-                { type: "SPLIT", regex: /(화면\s*분할|창\s*분할|창\s*정렬|반반\s*배치)/ },
-                { type: "LIGHT", regex: /(불\s*(켜|꺼)|조명\s*(켜|꺼)|스위치\s*(켜|꺼))/ },
-                { type: "MODE_STUDY", regex: /^(공부\s*모드|학습\s*모드|공부\s*시작|공부\s*세팅)(\s*(켜|실행|해줘|시작))?$/ },
-                { type: "MODE_CODING", regex: /^(코딩\s*모드|개발\s*모드|프로그래밍\s*모드|코딩\s*세팅)(\s*(켜|실행|해줘|시작))?$/ },
-                { type: "MODE_GAME", regex: /^(게임\s*모드|게이밍\s*모드|게임\s*세팅)(\s*(켜|실행|해줘|시작))?$/ },
-                { type: "MODE_REST", regex: /^(휴식\s*모드|힐링\s*모드|쉬는\s*모드|수면\s*모드)(\s*(켜|실행|해줘|시작))?$/ }
-            ];
+            // 질문형 어미("뭐야?", "어떻게 해?", "알려줘", "추천해줘")가 포함된 일반 질문은 대화(CHAT)로 라우팅
+            const isQuestionOrChat = /(뭐야|무엇|어떻게|알려|설명|추천|왜|할까|생각해|안녕|반가워|힘들|피곤|졸려|고마워|누구|몇\s*시|날씨|밥|메뉴)/.test(t)
+                && !/(켜\s*줘|꺼\s*줘|틀어\s*줘|열어\s*줘|실행해\s*줘|들어가\s*줘)$/.test(t);
 
-            for (const item of commandPatterns) {
-                if (item.regex.test(t)) {
-                    // 단, "공부 모드란 무엇인가요?" 같은 질문형 문장은 대화(CHAT)로 분류
-                    if (/(뭐야|무엇|어떻게|알려줘|설명해|추천해|왜|할까)\??$/.test(t) && !/(켜줘|꺼줘|틀어줘|열어줘|실행해줘)$/.test(t)) {
-                        return { route: "CHAT", subType: "QUESTION" };
-                    }
-                    return { route: "COMMAND", subType: item.type };
-                }
+            if (isQuestionOrChat) {
+                return { route: "CHAT", subType: "CONVERSATION" };
             }
 
-            // 그 외 모든 일상 발화·질문·상담은 일반 대화(CHAT)로 라우팅
+            if (/(이투스|etoos|인강|수강중\s*강좌|마이룸)/.test(t)) return { route: "COMMAND", subType: "ETOOS" };
+            if (/(ebsi|ebs|이비에스)/.test(t)) return { route: "COMMAND", subType: "EBSI" };
+            if (/(백색소음|빗소리|비소리|브라운\s*노이즈|브라운|바이노럴|집중음)/.test(t)) return { route: "COMMAND", subType: "NOISE" };
+            if (/(화면\s*분할|창\s*분할|창\s*정렬|반반\s*배치)/.test(t)) return { route: "COMMAND", subType: "SPLIT" };
+            if (/(불\s*(켜|꺼)|조명\s*(켜|꺼)|스위치\s*(켜|꺼))/.test(t)) return { route: "COMMAND", subType: "LIGHT" };
+            if (/^(공부\s*모드|학습\s*모드|공부\s*시작|공부\s*세팅)(\s*(켜|실행|해줘|시작))?$/.test(t)) return { route: "COMMAND", subType: "MODE_STUDY" };
+            if (/^(코딩\s*모드|개발\s*모드|프로그래밍\s*모드|코딩\s*세팅)(\s*(켜|실행|해줘|시작))?$/.test(t)) return { route: "COMMAND", subType: "MODE_CODING" };
+            if (/^(게임\s*모드|게이밍\s*모드|게임\s*세팅)(\s*(켜|실행|해줘|시작))?$/.test(t)) return { route: "COMMAND", subType: "MODE_GAME" };
+            if (/^(휴식\s*모드|힐링\s*모드|쉬는\s*모드|수면\s*모드)(\s*(켜|실행|해줘|시작))?$/.test(t)) return { route: "COMMAND", subType: "MODE_REST" };
+
+            // 명령어에 해당하지 않는 모든 자연어 발화는 일상 대화(CHAT)로 라우팅
             return { route: "CHAT", subType: "CONVERSATION" };
         }
 
-        async function queryConversationalLLM(userText) {
-            // 1순위: 로컬 Python 백엔드 (studyingmode.py의 /api/chat 엔드포인트 - Ollama/OpenAI 연동) 호출
+        async function requestLLMConversationReply(userText) {
+            // 1순위: 로컬 Python 백엔드(studyingmode.py)의 /api/chat LLM 엔드포인트 호출
             try {
-                const res = await fetch(`${getBackendBaseUrl()}/api/chat`, {
+                const res = await fetch(`${getBackendEndpoint()}/api/chat`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ message: userText })
@@ -1247,127 +1276,125 @@
                     const data = await res.json();
                     if (data && data.reply) return data.reply;
                 }
-            } catch (e) {
-                // 로컬 서버 미실행 시 내장 지능형 대화 엔진으로 즉시 응답
-            }
+            } catch (e) {}
 
-            // 2순위: 브라우저 내장 J.A.R.V.I.S. 대화형 어시스턴트 응답 생성
+            // 2순위: 백엔드 미연결 시 내장 J.A.R.V.I.S. 대화 엔진 응답
             const t = userText.trim();
             if (/안녕|반가워|하이|좋은\s*(아침|저녁|오후)/.test(t)) {
-                return "반갑습니다, 보스. 현재 모든 시스템과 상시 음성 인식 모듈이 정상 가동 중입니다. 오늘 어떤 작업이나 학습을 도와드릴까요?";
+                return "반갑습니다, 보스. 상시 마이크 Listening과 비전 네비게이터가 정상 가동 중입니다. 일상 대화나 학습 제어 명령을 편하게 말씀해 주세요.";
             }
-            if (/시간|몇\s*시|날짜|오늘\s*며칠/.test(t)) {
-                const now = new Date();
-                return `현재 시각은 ${now.toLocaleTimeString("ko-KR")}이며, 등록된 오늘 일정은 총 ${schedules.filter(s => s.date === "2026-11-13").length}건입니다.`;
+            if (/시간|몇\s*시|날짜|며칠/.test(t)) {
+                return `현재 시각은 ${new Date().toLocaleTimeString("ko-KR")}이며, 오늘 등록된 스케쥴은 ${schedules.filter(s => s.date === "2026-11-13").length}건입니다.`;
             }
-            if (/공부법|집중|수능|성적|모의고사|계획/.test(t)) {
-                return "효율적인 학습을 위해 50분 집중 후 10분 휴식하는 포모도로 주기를 권장합니다. 원하시면 '공부 모드 켜줘'라고 말씀해 주시면 브라운 노이즈와 함께 이투스 수강중 강좌를 바로 준비해 드리겠습니다.";
+            if (/공부|수능|집중|계획|인강/.test(t)) {
+                return "집중력을 높이려면 50분 학습 후 10분 휴식하는 루틴이 효과적입니다. '이투스 열어줘' 또는 '공부 모드 켜줘'라고 말씀하시면 광고 간섭 없이 곧바로 마이룸 수강중 강좌 화면을 준비해 드립니다.";
             }
             if (/피곤|힘들|졸려|지쳐|스트레스/.test(t)) {
-                return "컨디션 관리가 무엇보다 중요합니다. 잠시 '휴식 모드 켜줘'라고 말씀하시면 조명을 낮추고 편안한 빗소리를 재생해 드릴 수 있습니다.";
+                return "무리하지 마시고 잠시 쉬어가는 것도 중요합니다. '휴식 모드 켜줘'라고 말씀하시면 조명을 끄고 편안한 빗소리를 틀어드릴까요?";
             }
-            if (/누구|정체|이름|자비스/.test(t)) {
-                return "저는 보스의 학습과 작업 환경 제어는 물론 일상 대화까지 수행하는 인공지능 비서 J.A.R.V.I.S.입니다.";
-            }
-            return `"${t}"에 대해 확인했습니다. 로컬 LLM 서버(studyingmode.py)를 실행하시면 Llama-3 / GPT 기반의 심층 추론 답변을 제한 없이 제공받으실 수 있습니다. 계속해서 편하게 말씀해 주세요.`;
+            return `"${t}"에 대해 이해했습니다. 로컬 LLM 노드(studyingmode.py)를 실행해 두시면 Whisper 음성 인식과 로컬 LLM의 심층 답변이 실시간으로 연동됩니다.`;
         }
 
-        function speakJarvisReply(text) {
+        function speakTextWithTTS(text) {
             if (!("speechSynthesis" in window)) return;
             try {
                 window.speechSynthesis.cancel();
-                const cleanText = text.replace(/[⚡🎓📗🎧🔇🪟💡🛡️✅]/g, "").trim();
-                const utter = new SpeechSynthesisUtterance(cleanText);
+                const clean = text.replace(/[⚡🎓📗🎧🔇🪟💡🛡️✅🔒]/g, "").trim();
+                const utter = new SpeechSynthesisUtterance(clean);
                 utter.lang = "ko-KR";
                 utter.rate = 1.05;
                 window.speechSynthesis.speak(utter);
             } catch (e) {}
         }
 
-        function appendChatLog(speaker, text, routeType = "CHAT") {
+        function appendChatHistory(speaker, text, routeLabel = "CHAT") {
             const box = document.getElementById("jarvis-chat-history");
             const badge = document.getElementById("last-route-badge");
             const telRouter = document.getElementById("telemetry-router");
 
             if (badge) {
-                badge.innerText = `ROUTE: ${routeType}`;
-                badge.className = routeType === "COMMAND"
+                badge.innerText = `ROUTE: ${routeLabel}`;
+                badge.className = routeLabel === "COMMAND"
                     ? "px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold"
                     : "px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold";
             }
-            if (telRouter) telRouter.innerText = routeType;
+            if (telRouter) telRouter.innerText = routeLabel;
+            setJarvisMessage(text);
 
             if (!box) return;
-            const div = document.createElement("div");
+            const row = document.createElement("div");
             if (speaker === "USER") {
-                div.className = "text-white bg-cyan-950/40 px-2 py-1 rounded border-l-2 border-cyan-400";
-                div.innerHTML = `<span class="text-amber-300 font-bold mr-1">[USER]</span> ${text}`;
+                row.className = "text-white bg-cyan-950/40 px-2 py-1 rounded border-l-2 border-cyan-400";
+                row.innerHTML = `<span class="text-amber-300 font-bold mr-1">[USER]</span> ${text}`;
             } else {
-                div.className = "text-cyan-200 px-2 py-1";
-                div.innerHTML = `<span class="text-cyan-400 font-bold mr-1">[JARVIS · ${routeType}]</span> ${text}`;
+                row.className = "text-cyan-200 px-2 py-1";
+                row.innerHTML = `<span class="text-cyan-400 font-bold mr-1">[JARVIS · ${routeLabel}]</span> ${text}`;
             }
-            box.appendChild(div);
+            box.appendChild(row);
             box.scrollTop = box.scrollHeight;
         }
 
-        // 통합 라우터 + 실행 함수
-        async function handleStudyingmodeCommand(utterance) {
+        async function handleStudyingmodeCommand(utterance, fromRemote = false) {
             const t = (utterance || "").trim();
             if (!t) return;
+            const tLow = t.toLowerCase();
 
-            appendChatLog("USER", t);
-            const intent = classifyIntent(t);
-
-            if (intent.route === "CHAT") {
-                const reply = await queryConversationalLLM(t);
-                appendChatLog("JARVIS", reply, "LLM-CHAT");
-                speakJarvisReply(reply);
-                return reply;
+            if (!fromRemote) {
+                patchCloudState({ remoteCmd: { type: "utterance", value: t, ts: Date.now() } });
             }
 
-            // 시스템 제어 명령(COMMAND) 수행
-            const tLow = t.toLowerCase();
-            let cmdResult = "";
+            appendChatHistory("USER", t);
+            const decision = classifyIntentRouter(t);
 
-            if (intent.subType === "ETOOS") {
+            // 1) 일반 대화(CHAT)로 분류된 경우 LLM 응답 생성
+            if (decision.route === "CHAT") {
+                const llmReply = await requestLLMConversationReply(t);
+                appendChatHistory("JARVIS", llmReply, "LLM-CHAT");
+                speakTextWithTTS(llmReply);
+                return llmReply;
+            }
+
+            // 2) 시스템 제어 명령(COMMAND)으로 분류된 경우 기능 실행
+            let replyMsg = "";
+            if (decision.subType === "ETOOS") {
                 openStudyingModeWindow();
                 openAndLoginStudySitesInChrome(["etoos"]);
-                cmdResult = "화면 분석 엔진을 가동하여 이투스 로그인 및 수강중 강좌로 이동합니다.";
-            } else if (intent.subType === "EBSI") {
+                replyMsg = "화면 분석 엔진을 가동하여 광고를 차단하고 이투스 [마이룸 -> 수강중 강좌]로 진입합니다.";
+            } else if (decision.subType === "EBSI") {
                 openStudyingModeWindow();
                 openAndLoginStudySitesInChrome(["ebsi"]);
-                cmdResult = "EBSi 자동 로그인 시퀀스를 시작합니다.";
-            } else if (intent.subType === "NOISE") {
-                if (["꺼", "중지", "스톱", "그만"].some(k => tLow.includes(k))) cmdResult = stopWhiteNoise();
-                else if (tLow.includes("빗소리") || tLow.includes("비소리")) cmdResult = startWhiteNoise("rain", 0.35);
-                else if (tLow.includes("바이노럴")) cmdResult = startWhiteNoise("binaural", 0.28);
-                else cmdResult = startWhiteNoise("brown", 0.32);
-            } else if (intent.subType === "SPLIT") {
-                cmdResult = arrangeWindowsSplit("side_by_side");
-            } else if (intent.subType === "LIGHT") {
+                replyMsg = "EBSi 자동 로그인을 수행합니다.";
+            } else if (decision.subType === "NOISE") {
+                if (["꺼", "중지", "스톱", "그만"].some(k => tLow.includes(k))) replyMsg = stopWhiteNoise();
+                else if (tLow.includes("빗소리") || tLow.includes("비소리")) replyMsg = startWhiteNoise("rain", 0.35);
+                else if (tLow.includes("바이노럴")) replyMsg = startWhiteNoise("binaural", 0.28);
+                else replyMsg = startWhiteNoise("brown", 0.32);
+            } else if (decision.subType === "SPLIT") {
+                replyMsg = arrangeWindowsSplit("side_by_side");
+            } else if (decision.subType === "LIGHT") {
                 toggleLightMode();
-                cmdResult = isLightOn ? "💡 스마트 조명을 켰습니다." : "💡 스마트 조명을 껐습니다.";
-            } else if (intent.subType === "MODE_CODING") {
-                cmdResult = activateWorkspacePreset("coding");
-            } else if (intent.subType === "MODE_GAME") {
-                cmdResult = activateWorkspacePreset("game");
-            } else if (intent.subType === "MODE_REST") {
-                cmdResult = activateWorkspacePreset("rest");
+                replyMsg = isLightOn ? "💡 스마트 조명을 켰습니다." : "💡 스마트 조명을 껐습니다.";
+            } else if (decision.subType === "MODE_CODING") {
+                replyMsg = activateWorkspacePreset("coding", null, true, fromRemote);
+            } else if (decision.subType === "MODE_GAME") {
+                replyMsg = activateWorkspacePreset("game", null, true, fromRemote);
+            } else if (decision.subType === "MODE_REST") {
+                replyMsg = activateWorkspacePreset("rest", null, true, fromRemote);
             } else {
-                cmdResult = activateWorkspacePreset("study");
+                replyMsg = activateWorkspacePreset("study", null, true, fromRemote);
             }
 
-            appendChatLog("JARVIS", cmdResult, "COMMAND");
-            speakJarvisReply(cmdResult);
-            return cmdResult;
+            appendChatHistory("JARVIS", replyMsg, "COMMAND");
+            speakTextWithTTS(replyMsg);
+            return replyMsg;
         }
 
         function executeVoiceOrTextCommand() {
             const input = document.getElementById("jarvis-command-input");
             if (!input || !input.value.trim()) return;
-            const cmd = input.value.trim();
+            const text = input.value.trim();
             input.value = "";
-            handleStudyingmodeCommand(cmd);
+            handleStudyingmodeCommand(text, false);
         }
 
         document.getElementById("jarvis-command-input")?.addEventListener("keydown", (e) => {
@@ -1375,209 +1402,502 @@
         });
 
         // =========================================================================
-        // 🎙️ 3. 상시 마이크 Listening (VAD) -> Whisper STT -> Router -> LLM 응답
+        // 🎙️ 3. 상시 마이크 Listening 모드 -> 음성 감지(VAD) -> Whisper STT -> LLM 답장
         // =========================================================================
-        let alwaysOnListeningEnabled = true;
+        let alwaysOnMicActive = true;
         let vadAudioCtx = null;
         let vadAnalyser = null;
-        let vadMediaStream = null;
-        let mediaRecorder = null;
-        let recordedChunks = [];
-        let isRecordingSpeech = false;
-        let silenceStartTimestamp = 0;
-        let fallbackSpeechRecognizer = null;
-        let latestFallbackTranscript = "";
+        let vadStream = null;
+        let speechRecorder = null;
+        let audioChunks = [];
+        let isCapturingVoice = false;
+        let lastVoiceDetectedTime = 0;
+        let continuousSpeechBackup = null;
+        let backupTranscriptBuffer = "";
 
-        const VAD_RMS_THRESHOLD = 0.028;   // 음성 감지 임계값
-        const VAD_SILENCE_HOLD_MS = 1250;  // 발화 종료 판정 무음 유지 시간(1.25초)
+        const VOICE_RMS_THRESHOLD = 0.026; // 발화 시작 감지 음압 임계치
+        const VOICE_SILENCE_MS = 1200;     // 발화 종료 판정 무음 지속 시간(1.2초)
 
-        async function initAlwaysOnVoicePipeline() {
+        async function startAlwaysOnListeningEngine() {
             const statusLabel = document.getElementById("vad-status-label");
             const statusDot = document.getElementById("vad-status-dot");
 
             try {
-                vadMediaStream = await navigator.mediaDevices.getUserMedia({
-                    audio: {
-                        echoCancellation: true,
-                        noiseSuppression: true,
-                        autoGainControl: true
-                    }
+                vadStream = await navigator.mediaDevices.getUserMedia({
+                    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
                 });
-
                 const AudioCtx = window.AudioContext || window.webkitAudioContext;
                 vadAudioCtx = new AudioCtx();
-                const source = vadAudioCtx.createMediaStreamSource(vadMediaStream);
+                const source = vadAudioCtx.createMediaStreamSource(vadStream);
                 vadAnalyser = vadAudioCtx.createAnalyser();
                 vadAnalyser.fftSize = 512;
                 source.connect(vadAnalyser);
 
-                // 브라우저 보조 스트림 (로컬 Whisper 서버 미구동 환경에서도 무중단 동작 보장)
-                initContinuousBrowserSpeechBackup();
+                setupContinuousWebSpeechBackup();
 
-                if (statusLabel) statusLabel.innerText = "상시 마이크 LISTENING 활성 (음성 감지 시 Whisper 자동 분석)";
-                if (statusDot) statusDot.className = "w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping";
+                if (statusLabel) statusLabel.innerText = "상시 마이크 LISTENING 활성 (말씀하시면 자동 녹음 후 Whisper STT로 분석합니다)";
+                if (statusDot) statusDot.className = "w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping shrink-0";
 
-                monitorVoiceActivityLoop();
+                runVadMonitoringLoop();
             } catch (err) {
-                if (statusLabel) statusLabel.innerText = "마이크 권한 대기 중 (브라우저 마이크 허용 시 상시 Listening 작동)";
-                if (statusDot) statusDot.className = "w-2.5 h-2.5 rounded-full bg-amber-400";
+                if (statusLabel) statusLabel.innerText = "마이크 권한 허용 시 버튼 없이 상시 음성 Listening이 즉시 작동합니다.";
+                if (statusDot) statusDot.className = "w-2.5 h-2.5 rounded-full bg-amber-400 shrink-0";
             }
         }
 
-        function initContinuousBrowserSpeechBackup() {
+        function setupContinuousWebSpeechBackup() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SpeechRecognition) return;
-            fallbackSpeechRecognizer = new SpeechRecognition();
-            fallbackSpeechRecognizer.lang = "ko-KR";
-            fallbackSpeechRecognizer.continuous = true;
-            fallbackSpeechRecognizer.interimResults = true;
+            continuousSpeechBackup = new SpeechRecognition();
+            continuousSpeechBackup.lang = "ko-KR";
+            continuousSpeechBackup.continuous = true;
+            continuousSpeechBackup.interimResults = true;
 
-            fallbackSpeechRecognizer.onresult = (event) => {
-                for (let i = event.resultIndex; i < event.results.length; i++) {
-                    if (event.results[i].isFinal) {
-                        latestFallbackTranscript = event.results[i][0].transcript.trim();
+            continuousSpeechBackup.onresult = (e) => {
+                for (let i = e.resultIndex; i < e.results.length; i++) {
+                    if (e.results[i].isFinal) {
+                        backupTranscriptBuffer = e.results[i][0].transcript.trim();
                     }
                 }
             };
-            fallbackSpeechRecognizer.onend = () => {
-                if (alwaysOnListeningEnabled) {
-                    try { fallbackSpeechRecognizer.start(); } catch (e) {}
+            continuousSpeechBackup.onend = () => {
+                if (alwaysOnMicActive) {
+                    try { continuousSpeechBackup.start(); } catch (err) {}
                 }
             };
-            try { fallbackSpeechRecognizer.start(); } catch (e) {}
+            try { continuousSpeechBackup.start(); } catch (err) {}
         }
 
-        function monitorVoiceActivityLoop() {
+        function runVadMonitoringLoop() {
             if (!vadAnalyser) return;
-            const buffer = new Float32Array(vadAnalyser.fftSize);
+            const pcm = new Float32Array(vadAnalyser.fftSize);
             const levelBar = document.getElementById("vad-level-bar");
             const reactor = document.getElementById("reactor-container");
             const statusLabel = document.getElementById("vad-status-label");
 
-            const tick = () => {
-                requestAnimationFrame(tick);
-                if (!alwaysOnListeningEnabled) return;
+            const loop = () => {
+                requestAnimationFrame(loop);
+                if (!alwaysOnMicActive) return;
 
-                vadAnalyser.getFloatTimeDomainData(buffer);
-                let sumSquares = 0;
-                for (let i = 0; i < buffer.length; i++) {
-                    sumSquares += buffer[i] * buffer[i];
-                }
-                const rms = Math.sqrt(sumSquares / buffer.length);
-                const pct = Math.min(100, Math.round(rms * 450));
-                if (levelBar) levelBar.style.width = `${ Math.max(4, pct) }%`;
+                vadAnalyser.getFloatTimeDomainData(pcm);
+                let sum = 0;
+                for (let i = 0; i < pcm.length; i++) sum += pcm[i] * pcm[i];
+                const rms = Math.sqrt(sum / pcm.length);
+                if (levelBar) levelBar.style.width = `${Math.min(100, Math.max(5, Math.round(rms * 460)))}%`;
 
                 const now = performance.now();
-
-                if (rms > VAD_RMS_THRESHOLD) {
-                    silenceStartTimestamp = now;
-                    if (!isRecordingSpeech) {
-                        startSegmentRecording();
+                if (rms > VOICE_RMS_THRESHOLD) {
+                    lastVoiceDetectedTime = now;
+                    if (!isCapturingVoice) {
+                        beginVoiceSegmentCapture();
                         if (reactor) reactor.classList.add("vad-speaking");
-                        if (statusLabel) statusLabel.innerText = "🎙️ 음성 감지됨! 녹음 중... (말씀이 끝나면 Whisper로 전송합니다)";
+                        if (statusLabel) statusLabel.innerText = "🎙️ 음성 감지 중... (말씀이 끝나면 Whisper STT로 정확도를 높여 변환합니다)";
                     }
-                } else if (isRecordingSpeech) {
-                    if (now - silenceStartTimestamp > VAD_SILENCE_HOLD_MS) {
-                        stopSegmentRecordingAndTranscribe();
-                        if (reactor) reactor.classList.remove("vad-speaking");
-                        if (statusLabel) statusLabel.innerText = "⚡ Whisper STT 음성 변환 및 라우터 분석 중...";
-                    }
+                } else if (isCapturingVoice && (now - lastVoiceDetectedTime > VOICE_SILENCE_MS)) {
+                    finishVoiceSegmentAndSendToWhisper();
+                    if (reactor) reactor.classList.remove("vad-speaking");
+                    if (statusLabel) statusLabel.innerText = "⚡ Whisper STT 변환 및 라우터 -> LLM 응답 생성 중...";
                 }
             };
-            tick();
+            loop();
         }
 
-        function startSegmentRecording() {
-            if (!vadMediaStream) return;
-            isRecordingSpeech = true;
-            recordedChunks = [];
-            latestFallbackTranscript = "";
-
+        function beginVoiceSegmentCapture() {
+            if (!vadStream) return;
+            isCapturingVoice = true;
+            audioChunks = [];
+            backupTranscriptBuffer = "";
             try {
-                mediaRecorder = new MediaRecorder(vadMediaStream);
-                mediaRecorder.ondataavailable = (e) => {
-                    if (e.data && e.data.size > 0) recordedChunks.push(e.data);
+                speechRecorder = new MediaRecorder(vadStream);
+                speechRecorder.ondataavailable = (e) => {
+                    if (e.data && e.data.size > 0) audioChunks.push(e.data);
                 };
-                mediaRecorder.onstop = async () => {
-                    const audioBlob = new Blob(recordedChunks, { type: "audio/webm" });
-                    await sendAudioToWhisperAndRoute(audioBlob);
+                speechRecorder.onstop = async () => {
+                    const blob = new Blob(audioChunks, { type: "audio/webm" });
+                    await transcribeWithWhisperAndRoute(blob);
                 };
-                mediaRecorder.start();
+                speechRecorder.start();
             } catch (e) {
-                isRecordingSpeech = false;
+                isCapturingVoice = false;
             }
         }
 
-        function stopSegmentRecordingAndTranscribe() {
-            isRecordingSpeech = false;
-            if (mediaRecorder && mediaRecorder.state !== "inactive") {
-                try { mediaRecorder.stop(); } catch (e) {}
+        function finishVoiceSegmentAndSendToWhisper() {
+            isCapturingVoice = false;
+            if (speechRecorder && speechRecorder.state !== "inactive") {
+                try { speechRecorder.stop(); } catch (e) {}
             }
         }
 
-        async function sendAudioToWhisperAndRoute(audioBlob) {
+        async function transcribeWithWhisperAndRoute(audioBlob) {
             const statusLabel = document.getElementById("vad-status-label");
-            let transcribedText = "";
+            let recognizedText = "";
 
-            // 1순위: 로컬 Python 백엔드 Whisper STT 엔드포인트 (/api/whisper) 호출
+            // 1순위: 백엔드 Whisper STT 엔드포인트(/api/whisper)로 오디오 전송하여 정확도 향상
             try {
                 const formData = new FormData();
-                formData.append("file", audioBlob, "speech.webm");
-
-                const res = await fetch(`${getBackendBaseUrl()}/api/whisper`, {
+                formData.append("file", audioBlob, "voice.webm");
+                const res = await fetch(`${getBackendEndpoint()}/api/whisper`, {
                     method: "POST",
                     body: formData
                 });
                 if (res.ok) {
                     const data = await res.json();
-                    if (data && data.text) {
-                        transcribedText = data.text.trim();
-                    }
+                    if (data && data.text) recognizedText = data.text.trim();
                 }
-            } catch (err) {
-                // 로컬 Whisper 서버 오프라인 시 백업 스트림 텍스트 사용
-            }
+            } catch (e) {}
 
-            if (!transcribedText && latestFallbackTranscript) {
-                transcribedText = latestFallbackTranscript;
-                latestFallbackTranscript = "";
+            // 백엔드 서버가 꺼져 있는 경우 브라우저 상시 스트림 결과로 폴백
+            if (!recognizedText && backupTranscriptBuffer) {
+                recognizedText = backupTranscriptBuffer;
+                backupTranscriptBuffer = "";
             }
 
             if (statusLabel) {
-                statusLabel.innerText = "상시 마이크 LISTENING 대기 중 (말씀하시면 자동 녹음·Whisper 분석)";
+                statusLabel.innerText = "상시 마이크 LISTENING 대기 중 (버튼 없이 말씀하시면 Whisper 자동 인식)";
             }
 
-            if (transcribedText) {
-                await handleStudyingmodeCommand(transcribedText);
+            if (recognizedText) {
+                await handleStudyingmodeCommand(recognizedText, false);
             }
         }
 
         function toggleAlwaysOnListening() {
-            alwaysOnListeningEnabled = !alwaysOnListeningEnabled;
+            alwaysOnMicActive = !alwaysOnMicActive;
             const btn = document.getElementById("btn-toggle-always-mic");
             const dot = document.getElementById("vad-status-dot");
             const label = document.getElementById("vad-status-label");
 
-            if (alwaysOnListeningEnabled) {
+            if (alwaysOnMicActive) {
                 if (btn) {
                     btn.innerText = "AUTO-MIC: ON";
                     btn.className = "text-[10px] px-2 py-0.5 rounded border border-emerald-400/50 text-emerald-300 font-mono-code cursor-pointer";
                 }
-                if (dot) dot.className = "w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping";
-                if (label) label.innerText = "상시 마이크 LISTENING 대기 중 (말씀하시면 자동 녹음·Whisper 분석)";
-                if (!vadAudioCtx) initAlwaysOnVoicePipeline();
+                if (dot) dot.className = "w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping shrink-0";
+                if (label) label.innerText = "상시 마이크 LISTENING 대기 중 (버튼 없이 말씀하시면 Whisper 자동 인식)";
+                if (!vadAudioCtx) startAlwaysOnListeningEngine();
             } else {
                 if (btn) {
                     btn.innerText = "AUTO-MIC: PAUSED";
                     btn.className = "text-[10px] px-2 py-0.5 rounded border border-rose-400/50 text-rose-300 font-mono-code cursor-pointer";
                 }
-                if (dot) dot.className = "w-2.5 h-2.5 rounded-full bg-rose-500";
-                if (label) label.innerText = "상시 마이크 감지가 일시 중지되었습니다.";
+                if (dot) dot.className = "w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0";
+                if (label) label.innerText = "상시 마이크 Listening이 일시 중지되었습니다.";
             }
         }
 
         // =========================================================================
-        // 🎵 4. 백색소음 합성기 (WebWhiteNoiseSynthesizer) & 창 분할 / 조명 제어
+        // 🌐 4. 클라우드 실시간 송수신 함수 (index_2.html 멀티 디바이스 동기화 유지)
+        // =========================================================================
+        function setCloudBadge(status, text) {
+            const dot = document.getElementById("cloud-sync-dot");
+            const lbl = document.getElementById("cloud-sync-text");
+            if (!dot || !lbl) return;
+            if (status === "ok") {
+                dot.className = "w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]";
+                lbl.innerText = text || "CLOUD DB: 실시간 연동 중";
+                lbl.className = "text-emerald-300 font-bold";
+            } else if (status === "err") {
+                dot.className = "w-2 h-2 rounded-full bg-rose-500 animate-ping";
+                lbl.innerText = text || "CLOUD DB: 규칙(Rules) 확인 필요";
+                lbl.className = "text-rose-400 font-bold";
+            } else {
+                dot.className = "w-2 h-2 rounded-full bg-amber-400";
+                lbl.innerText = text || "CLOUD DB: 동기화 중...";
+                lbl.className = "text-amber-200";
+            }
+        }
+
+        async function patchCloudState(partialObj) {
+            if (isApplyingRemoteState) return false;
+            const payload = {
+                ...partialObj,
+                updatedBy: CLIENT_SESSION_ID,
+                updatedAt: Date.now()
+            };
+            try {
+                const res = await fetch(FIREBASE_STATE_URL, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+                if (res.ok) {
+                    setCloudBadge("ok", "CLOUD DB: 실시간 연동 중");
+                    return true;
+                } else {
+                    setCloudBadge("err", `CLOUD DB 거부 (${res.status})`);
+                    return false;
+                }
+            } catch (e) {
+                setCloudBadge("err", "CLOUD DB: 네트워크 연결 실패");
+                return false;
+            }
+        }
+
+        async function pullStateFromCloud(manualRefresh = false) {
+            try {
+                const res = await fetch(`${FIREBASE_STATE_URL}?t=${Date.now()}`, { cache: "no-store" });
+                if (!res.ok) {
+                    setCloudBadge("err", `CLOUD DB 거부 (${res.status})`);
+                    return;
+                }
+                setCloudBadge("ok", "CLOUD DB: 실시간 연동 중");
+                const data = await res.json();
+
+                if (!data) {
+                    updateNodeUIEverywhere(null);
+                    return;
+                }
+
+                isApplyingRemoteState = true;
+                try {
+                    if (data.node && data.node.registered) {
+                        cloudNodeCache = data.node;
+                        updateNodeUIEverywhere(data.node);
+                        if (manualRefresh) {
+                            setJarvisMessage(`클라우드에서 연산 기기 [${data.node.deviceName}] 연결을 확인했습니다.`);
+                        }
+                    } else {
+                        updateNodeUIEverywhere(null);
+                    }
+
+                    if (Array.isArray(data.schedules)) {
+                        schedules = data.schedules;
+                        renderCalendar();
+                        renderScheduleList();
+                    }
+
+                    if (typeof data.isLightOn === "boolean" && data.isLightOn !== isLightOn) {
+                        toggleLightMode(true);
+                    }
+
+                    if (data.currentActiveMode && data.currentActiveMode !== currentActiveMode && data.currentActiveMode !== "none") {
+                        activateWorkspacePreset(data.currentActiveMode, null, true, true);
+                    } else if (typeof data.isStudyActive === "boolean" && data.isStudyActive !== isStudyActive) {
+                        toggleStudyMode(true);
+                    }
+
+                    if (data.remoteCmd && data.remoteCmd.ts && data.remoteCmd.ts > lastHandledCommandTimestamp) {
+                        lastHandledCommandTimestamp = data.remoteCmd.ts;
+                        if (data.updatedBy !== CLIENT_SESSION_ID) {
+                            if (data.remoteCmd.type === "utterance" && data.remoteCmd.value) {
+                                handleStudyingmodeCommand(data.remoteCmd.value, true);
+                            } else if (data.remoteCmd.type === "etoos") {
+                                runEtoosSmartLoginOnly(true);
+                            } else if (data.remoteCmd.type === "ebsi") {
+                                runEbsiLoginSequence(true);
+                            } else if (data.remoteCmd.type === "ping") {
+                                setJarvisMessage(`🔗 원격 기기(${data.remoteCmd.from})로부터 연결 신호(Ping)가 수신되었습니다!`);
+                            }
+                        }
+                    }
+                } finally {
+                    isApplyingRemoteState = false;
+                }
+            } catch (e) {
+                setCloudBadge("err", "CLOUD DB: 오프라인");
+            }
+        }
+
+        function updateNodeUIEverywhere(nodeData) {
+            const dot = document.getElementById("login-status-dot");
+            const text = document.getElementById("login-status-text");
+            const deviceDisplay = document.getElementById("compute-device-name");
+            const badge = document.getElementById("node-badge");
+            const telemetryLlm = document.getElementById("telemetry-llm");
+            const pingText = document.getElementById("node-ping-text");
+
+            if (nodeData && nodeData.registered) {
+                if (dot) dot.className = "w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399] shrink-0";
+                if (text) text.innerText = `${nodeData.deviceName} (연결 가능 · ONLINE)`;
+                if (deviceDisplay) {
+                    deviceDisplay.innerText = nodeData.deviceName;
+                    deviceDisplay.className = "mt-1 text-sm sm:text-base font-bold text-cyan-300 truncate";
+                }
+                if (badge) {
+                    badge.innerText = "ONLINE";
+                    badge.className = "text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 border border-emerald-400/60 text-emerald-300 font-bold";
+                }
+                if (telemetryLlm) {
+                    telemetryLlm.innerText = "CONNECTED";
+                    telemetryLlm.className = "font-mono-code text-emerald-400";
+                }
+                if (pingText) {
+                    pingText.innerText = `최근 등록: ${nodeData.registeredAt || "방금 전"}`;
+                }
+            } else {
+                if (dot) dot.className = "w-2.5 h-2.5 rounded-full bg-amber-400 shrink-0";
+                if (text) text.innerText = "미등록 (먼저 PANEL에서 기기를 등록하세요)";
+                if (deviceDisplay) {
+                    deviceDisplay.innerText = "미등록 (PANEL 접속 필요)";
+                    deviceDisplay.className = "mt-1 text-sm sm:text-base font-bold text-amber-300 truncate";
+                }
+                if (badge) {
+                    badge.innerText = "UNREGISTERED";
+                    badge.className = "text-[10px] px-2 py-0.5 rounded bg-amber-500/20 border border-amber-400/60 text-amber-300 font-bold";
+                }
+                if (telemetryLlm) {
+                    telemetryLlm.innerText = "NO NODE";
+                    telemetryLlm.className = "font-mono-code text-amber-400";
+                }
+                if (pingText) {
+                    pingText.innerText = "연결된 연산 기기 없음";
+                }
+            }
+        }
+
+        async function pingConnectedNode() {
+            await pullStateFromCloud(true);
+            if (cloudNodeCache && cloudNodeCache.registered) {
+                await patchCloudState({
+                    remoteCmd: { type: "ping", from: detectDeviceName(), ts: Date.now() }
+                });
+                document.getElementById("node-ping-text").innerText = "⚡ 양방향 원격 연결 정상 (응답 완료)";
+                setJarvisMessage(`연산 기기 [${cloudNodeCache.deviceName}]와(과) 실시간 원격 제어 채널이 연결되어 있습니다.`);
+            } else {
+                setJarvisMessage("아직 등록된 연산 기기가 없습니다. 연산 기기(PC)에서 PANEL 모드로 접속해 등록해 주세요.");
+            }
+        }
+
+        function detectDeviceName() {
+            const ua = navigator.userAgent;
+            if (/Windows/i.test(ua)) return "Windows-Whisper-LLM-PC #01";
+            if (/Macintosh|Mac OS/i.test(ua)) return "Mac-Whisper-LLM-Node #01";
+            if (/Android/i.test(ua)) return "Galaxy-Edge-Node #01";
+            if (/iPhone|iPad/i.test(ua)) return "iOS-Edge-Node #01";
+            return "JARVIS-Compute-Node #01";
+        }
+
+        async function registerCurrentDeviceAsPanel() {
+            const nowStr = new Date().toLocaleString("ko-KR");
+            const endpointInput = document.getElementById("panel-endpoint-input")?.value.trim() || "http://localhost:8000";
+            const nodeInfo = {
+                registered: true,
+                deviceName: (cloudNodeCache && cloudNodeCache.deviceName) ? cloudNodeCache.deviceName : detectDeviceName(),
+                endpoint: endpointInput,
+                registeredAt: nowStr
+            };
+            cloudNodeCache = nodeInfo;
+            updateNodeUIEverywhere(nodeInfo);
+
+            try {
+                const res = await fetch(FIREBASE_NODE_URL, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(nodeInfo)
+                });
+                const statusEl = document.getElementById("panel-cloud-status");
+                if (res.ok) {
+                    setCloudBadge("ok", "CLOUD DB: 기기 등록 완료");
+                    if (statusEl) {
+                        statusEl.innerText = "✅ 클라우드 등록 완료 (모든 기기에서 연결 가능)";
+                        statusEl.className = "text-emerald-400 font-bold";
+                    }
+                }
+            } catch (e) {
+                setCloudBadge("err", "CLOUD DB: 전송 실패");
+            }
+        }
+
+        async function updateDeviceName() {
+            const newName = document.getElementById("custom-device-input").value.trim();
+            const endpointInput = document.getElementById("panel-endpoint-input")?.value.trim() || "http://localhost:8000";
+            if (!newName) return;
+            const nodeInfo = {
+                registered: true,
+                deviceName: newName,
+                endpoint: endpointInput,
+                registeredAt: new Date().toLocaleString("ko-KR")
+            };
+            cloudNodeCache = nodeInfo;
+            document.getElementById("panel-device-name").innerText = nodeInfo.deviceName;
+            document.getElementById("panel-registered-time").innerText = nodeInfo.registeredAt;
+            updateNodeUIEverywhere(nodeInfo);
+
+            const ok = await patchCloudState({ node: nodeInfo });
+            const statusEl = document.getElementById("panel-cloud-status");
+            if (ok && statusEl) {
+                statusEl.innerText = `✅ [${newName}] 이름으로 클라우드 공유 완료!`;
+            }
+        }
+
+        function openAuthModal(role) {
+            pendingRole = role;
+            document.getElementById("modal-role-title").innerText = `${role} 모드 보안 인증`;
+            document.getElementById("password-input").value = "";
+            document.getElementById("auth-error-msg").innerText = "";
+            const modal = document.getElementById("auth-modal");
+            modal.classList.remove("hidden"); modal.classList.add("flex");
+            setTimeout(() => document.getElementById("password-input").focus(), 50);
+        }
+
+        function closeAuthModal() {
+            const modal = document.getElementById("auth-modal");
+            modal.classList.add("hidden"); modal.classList.remove("flex");
+        }
+
+        function fillDemoPassword() {
+            document.getElementById("password-input").value = SYSTEM_PW;
+        }
+
+        document.getElementById("password-input").addEventListener("keydown", (e) => {
+            if (e.key === "Enter") verifyPassword();
+        });
+
+        async function verifyPassword() {
+            const inputPw = document.getElementById("password-input").value;
+            if (inputPw !== SYSTEM_PW) {
+                document.getElementById("auth-error-msg").innerText = "비밀번호가 일치하지 않습니다.";
+                return;
+            }
+            closeAuthModal();
+            document.getElementById("login-screen").classList.add("hidden");
+
+            if (pendingRole === "PANEL") {
+                await registerCurrentDeviceAsPanel();
+                showPanelScreen();
+            } else if (pendingRole === "USER") {
+                await pullStateFromCloud(true);
+                showUserDashboard();
+            }
+        }
+
+        function showPanelScreen() {
+            const nodeInfo = cloudNodeCache || { deviceName: detectDeviceName(), registeredAt: new Date().toLocaleString("ko-KR") };
+            document.getElementById("panel-device-name").innerText = nodeInfo.deviceName;
+            document.getElementById("panel-registered-time").innerText = nodeInfo.registeredAt;
+            document.getElementById("custom-device-input").value = nodeInfo.deviceName;
+            const panel = document.getElementById("panel-screen");
+            panel.classList.remove("hidden"); panel.classList.add("flex");
+        }
+
+        async function switchToUserDirectly() {
+            document.getElementById("panel-screen").classList.add("hidden");
+            document.getElementById("panel-screen").classList.remove("flex");
+            await pullStateFromCloud(true);
+            showUserDashboard();
+        }
+
+        function logoutToHome() {
+            closeStudyingModeWindow();
+            document.getElementById("panel-screen").classList.add("hidden");
+            document.getElementById("panel-screen").classList.remove("flex");
+            document.getElementById("user-dashboard").classList.add("hidden");
+            document.getElementById("login-screen").classList.remove("hidden");
+            pullStateFromCloud();
+        }
+
+        function showUserDashboard() {
+            document.getElementById("user-dashboard").classList.remove("hidden");
+            updateNodeUIEverywhere(cloudNodeCache);
+            renderCalendar();
+            renderScheduleList();
+            // 대시보드 진입 즉시 상시 마이크 Listening (VAD -> Whisper STT) 가동
+            startAlwaysOnListeningEngine();
+        }
+
+        // =========================================================================
+        // 🎵 5. 백색소음 합성기 및 대시보드 컨트롤
         // =========================================================================
         class WebWhiteNoiseSynthesizer {
             constructor() {
@@ -1590,7 +1910,6 @@
                 this.activeNodes = [];
                 this.animFrameId = null;
             }
-
             _initContext() {
                 if (!this.ctx) {
                     const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -1598,11 +1917,9 @@
                 }
                 if (this.ctx.state === "suspended") this.ctx.resume();
             }
-
             start(profile = "brown", volume = 0.32) {
                 this.stop();
                 if (["off", "none", "꺼", "중지"].includes(profile)) return "🔇 정지";
-
                 this._initContext();
                 this.currentProfile = profile;
                 this.volume = Math.max(0.05, Math.min(1.0, parseFloat(volume)));
@@ -1621,8 +1938,8 @@
                         lpL1 = 0.88 * lpL1 + 0.12 * wl;
                         lpR1 = 0.88 * lpR1 + 0.12 * wr;
                         const theta = (2 * Math.PI * i) / nSamples;
-                        left[i] = lpL1 * (0.9 + 0.08 * Math.sin(2 * theta)) * 0.55;
-                        right[i] = lpR1 * (0.9 + 0.08 * Math.sin(2 * theta + 0.7)) * 0.55;
+                        left[i] = lpL1 * (0.90 + 0.08 * Math.sin(2 * theta)) * 0.55;
+                        right[i] = lpR1 * (0.90 + 0.08 * Math.sin(2 * theta + 0.7)) * 0.55;
                     } else {
                         lpL1 = 0.965 * lpL1 + 0.035 * wl;
                         lpL2 = 0.920 * lpL2 + 0.080 * lpL1;
@@ -1669,29 +1986,25 @@
                 this.playing = true;
                 this._startVisualizer();
 
-                const profileKr = { brown: "브라운노이즈", rain: "빗소리", binaural: "바이노럴(14Hz)" }[profile] || "백색소음";
+                const profileKr = { brown: "브라운노이즈", rain: "빗소리", binaural: "바이노럴(200/214Hz)" }[profile] || "백색소음";
                 updateNoiseUI(true, `🎧 ${profileKr}`, this.volume);
-                return `🎧 ${profileKr} 재생 시작`;
+                return `🎧 ${profileKr}`;
             }
-
             setVolume(val0to1) {
                 this.volume = Math.max(0.05, Math.min(1.0, parseFloat(val0to1)));
-                if (this.masterGain && this.ctx) {
-                    this.masterGain.gain.setValueAtTime(this.volume, this.ctx.currentTime);
-                }
+                if (this.masterGain && this.ctx) this.masterGain.gain.setValueAtTime(this.volume, this.ctx.currentTime);
             }
-
             stop() {
                 this.playing = false;
+                this.currentProfile = "off";
                 this.activeNodes.forEach(n => { try { n.stop(); n.disconnect(); } catch (e) {} });
                 this.activeNodes = [];
                 if (this.masterGain) { try { this.masterGain.disconnect(); } catch (e) {} this.masterGain = null; }
                 if (this.animFrameId) { cancelAnimationFrame(this.animFrameId); this.animFrameId = null; }
                 this._clearVisualizer();
                 updateNoiseUI(false, "🔇 정지", this.volume);
-                return "🔇 백색소음 정지";
+                return "🔇 정지";
             }
-
             _startVisualizer() {
                 const canvas = document.getElementById("noise-waveform-canvas");
                 if (!canvas || !this.analyser) return;
@@ -1704,7 +2017,7 @@
                     c.fillStyle = "#02060d";
                     c.fillRect(0, 0, canvas.width, canvas.height);
                     c.lineWidth = 1.6;
-                    c.strokeStyle = "#00f2ff";
+                    c.strokeStyle = this.currentProfile === "rain" ? "#00ffaa" : this.currentProfile === "binaural" ? "#ffb84d" : "#00f2ff";
                     c.beginPath();
                     const sliceWidth = canvas.width / dataArray.length;
                     let x = 0;
@@ -1717,7 +2030,6 @@
                 };
                 draw();
             }
-
             _clearVisualizer() {
                 const canvas = document.getElementById("noise-waveform-canvas");
                 if (!canvas) return;
@@ -1732,12 +2044,12 @@
         function startWhiteNoise(profile, vol) {
             const msg = ambientEngine.start(profile, vol);
             setPopupFeedback(msg, "#00ffaa");
-            return msg;
+            return `${msg} 재생을 시작합니다.`;
         }
         function stopWhiteNoise() {
             const msg = ambientEngine.stop();
             setPopupFeedback(msg, "#ff3b5c");
-            return msg;
+            return "백색소음 재생을 정지했습니다.";
         }
         function changeWhiteNoiseVolume(pct) {
             document.getElementById("noise-vol-label").innerText = `${pct}%`;
@@ -1754,28 +2066,31 @@
 
         function arrangeWindowsSplit(layout = "side_by_side", keywords = []) {
             const preview = document.getElementById("mini-split-preview");
+            const telSplit = document.getElementById("telemetry-split");
             const badge = document.getElementById("split-layout-badge");
             if (layout === "fullscreen") {
-                badge.innerText = "MAXIMIZED";
-                preview.innerHTML = `<div class="flex-1 rounded bg-cyan-500/30 border border-cyan-300 flex items-center justify-center text-[10px] text-white font-bold font-mono-code">ETOOS 수강중 강좌 (전체화면)</div>`;
-                return "🪟 전체화면 정렬 완료";
+                telSplit.innerText = "FULLSCREEN"; badge.innerText = "MYROOM -> COURSES";
+                preview.innerHTML = `<div class="flex-1 rounded bg-cyan-500/30 border border-cyan-300 flex items-center justify-center text-[10px] text-white font-bold font-mono-code">마이룸 &rarr; 수강중 강좌 (전체화면)</div>`;
+                return "🪟 전체화면";
             } else if (layout === "coding_60_40") {
-                badge.innerText = "60% : 40%";
-                preview.innerHTML = `<div style="width:60%" class="rounded bg-emerald-500/25 border border-emerald-400 flex items-center justify-center text-[10px] text-emerald-200 font-mono-code">VSCode</div><div style="width:40%" class="rounded bg-cyan-500/20 border border-cyan-400 flex items-center justify-center text-[10px] text-cyan-200 font-mono-code">GitHub</div>`;
-                return "🪟 60:40 코딩 화면 분할 완료";
+                telSplit.innerText = "SPLIT 60:40"; badge.innerText = "60% : 40%";
+                preview.innerHTML = `<div style="width:60%" class="rounded bg-emerald-500/25 border border-emerald-400 flex items-center justify-center text-[10px] text-emerald-200 font-bold font-mono-code">VSCode (60%)</div><div style="width:40%" class="rounded bg-cyan-500/20 border border-cyan-400 flex items-center justify-center text-[10px] text-cyan-200 font-mono-code">GitHub (40%)</div>`;
+                return "🪟 60:40 분할";
             } else {
-                badge.innerText = "50% : 50%";
-                preview.innerHTML = `<div class="w-1/2 rounded bg-amber-500/20 border border-amber-400 flex items-center justify-center text-[10px] text-amber-200 font-mono-code">Left 50%</div><div class="w-1/2 rounded bg-purple-500/20 border border-purple-400 flex items-center justify-center text-[10px] text-purple-200 font-mono-code">Right 50%</div>`;
-                return "🪟 50:50 화면 분할 완료";
+                telSplit.innerText = "SPLIT 50:50"; badge.innerText = "50% : 50%";
+                preview.innerHTML = `<div class="w-1/2 rounded bg-amber-500/20 border border-amber-400 flex items-center justify-center text-[10px] text-amber-200 font-mono-code">${keywords[0] || "Left 50%"}</div><div class="w-1/2 rounded bg-purple-500/20 border border-purple-400 flex items-center justify-center text-[10px] text-purple-200 font-mono-code">${keywords[1] || "Right 50%"}</div>`;
+                return "🪟 50:50 분할";
             }
         }
 
         function setMonitorBrightness(levelPct) {
             const lv = Math.max(15, Math.min(100, parseInt(levelPct, 10)));
             const overlay = document.getElementById("brightness-overlay");
+            if (overlay) overlay.style.opacity = (((100 - lv) / 100) * 0.68).toFixed(2);
+            const slider = document.getElementById("brightness-slider");
             const label = document.getElementById("brightness-val-label");
             const telBright = document.getElementById("telemetry-brightness");
-            if (overlay) overlay.style.opacity = (((100 - lv) / 100) * 0.68).toFixed(2);
+            if (slider) slider.value = lv;
             if (label) label.innerText = `${lv}%`;
             if (telBright) telBright.innerText = `${lv}%`;
         }
@@ -1785,175 +2100,63 @@
             if (isLightOn !== wantOn) toggleLightMode(true);
         }
 
-        function activateWorkspacePreset(mode = "study") {
-            const preset = WORKSPACE_PRESETS[mode] || WORKSPACE_PRESETS.study;
-            currentActiveMode = mode;
+        function activateWorkspacePreset(mode = "study", customNoise = null, enableWindowSplit = true, fromRemote = false) {
+            let mKey = (mode || "study").trim().toLowerCase();
+            if (["공부", "학습", "study"].some(k => mKey.includes(k))) mKey = "study";
+            else if (["코딩", "개발", "coding"].some(k => mKey.includes(k))) mKey = "coding";
+            else if (["게임", "롤", "game"].some(k => mKey.includes(k))) mKey = "game";
+            else if (["휴식", "힐링", "rest"].some(k => mKey.includes(k))) mKey = "rest";
+            else mKey = "study";
+
+            const preset = WORKSPACE_PRESETS[mKey];
+            currentActiveMode = mKey;
 
             controlLight(preset.light_state);
             setMonitorBrightness(preset.brightness);
-            ambientEngine.start(preset.noise_profile, preset.noise_volume);
-            arrangeWindowsSplit(preset.split_layout, preset.window_keywords);
+            ambientEngine.start(customNoise !== null ? customNoise : preset.noise_profile, preset.noise_volume);
+            if (enableWindowSplit) arrangeWindowsSplit(preset.split_layout, preset.window_keywords);
 
-            if (mode === "study") {
+            if (mKey === "study") {
                 if (!isStudyActive) toggleStudyMode(true);
                 openAndLoginStudySitesInChrome(["etoos"]);
             } else if (isStudyActive) {
                 toggleStudyMode(true);
             }
 
-            const telPreset = document.getElementById("telemetry-active-preset");
-            const popIndicator = document.getElementById("popup-active-mode-indicator");
-            if (telPreset) telPreset.innerText = `MODE: ${mode.toUpperCase()}`;
-            if (popIndicator) popIndicator.innerText = `ACTIVE: ${preset.title}`;
+            const reactor = document.getElementById("reactor-container");
+            if (reactor) {
+                reactor.classList.remove("mode-study", "mode-coding", "mode-game", "mode-rest");
+                reactor.classList.add(`mode-${mKey}`);
+            }
+            document.getElementById("core-sub-status").innerText = `${mKey.toUpperCase()} MODE`;
+            document.getElementById("telemetry-active-preset").innerText = `MODE: ${mKey.toUpperCase()}`;
+            document.getElementById("popup-active-mode-indicator").innerText = `ACTIVE: ${preset.title}`;
 
-            const resultMsg = `⚡ ${preset.title} 활성화 완료 (${preset.description})`;
+            const resultMsg = `⚡ ${preset.title} 완료 (${preset.description})`;
             setPopupFeedback(resultMsg, "#00f2ff");
+            setJarvisMessage(resultMsg);
+
+            if (!fromRemote) {
+                patchCloudState({ currentActiveMode: currentActiveMode, isStudyActive: isStudyActive, isLightOn: isLightOn });
+            }
             return resultMsg;
         }
 
-        // =========================================================================
-        // 🖥️ 5. 대시보드 UI & 캘린더 & 인증 제어
-        // =========================================================================
         function openStudyingModeWindow() {
-            const modal = document.getElementById("studying-mode-modal");
-            modal.classList.remove("hidden");
-            modal.classList.add("flex");
+            const m = document.getElementById("studying-mode-modal");
+            m.classList.remove("hidden"); m.classList.add("flex");
         }
         function closeStudyingModeWindow() {
-            const modal = document.getElementById("studying-mode-modal");
-            modal.classList.add("hidden");
-            modal.classList.remove("flex");
+            const m = document.getElementById("studying-mode-modal");
+            m.classList.add("hidden"); m.classList.remove("flex");
         }
         function setPopupFeedback(text, colorHex = "#00f2ff") {
             const lbl = document.getElementById("popup-lbl-feedback");
             if (lbl) { lbl.style.color = colorHex; lbl.innerText = text; }
         }
-
-        window.addEventListener("DOMContentLoaded", () => {
-            updateLoginNodePreview();
-            startClock();
-            ambientEngine._clearVisualizer();
-        });
-
-        function updateLoginNodePreview() {
-            const nodeData = JSON.parse(localStorage.getItem(STORAGE_NODE_KEY));
-            const dot = document.getElementById("login-status-dot");
-            const text = document.getElementById("login-status-text");
-            if (nodeData && nodeData.registered) {
-                dot.className = "w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]";
-                text.innerText = `등록된 로컬 LLM 연산 기기: ${nodeData.deviceName} (${nodeData.endpoint || "http://localhost:8000"})`;
-            } else {
-                dot.className = "w-2 h-2 rounded-full bg-amber-400";
-                text.innerText = "현재 등록된 로컬 LLM 연산 기기: 없음 (PANEL에서 등록 가능)";
-            }
-        }
-
-        function openAuthModal(role) {
-            pendingRole = role;
-            document.getElementById("modal-role-title").innerText = `${role} 모드 보안 인증`;
-            document.getElementById("password-input").value = "";
-            document.getElementById("auth-error-msg").innerText = "";
-            const modal = document.getElementById("auth-modal");
-            modal.classList.remove("hidden");
-            modal.classList.add("flex");
-            setTimeout(() => document.getElementById("password-input").focus(), 50);
-        }
-        function closeAuthModal() {
-            const modal = document.getElementById("auth-modal");
-            modal.classList.add("hidden");
-            modal.classList.remove("flex");
-        }
-        function fillDemoPassword() {
-            document.getElementById("password-input").value = SYSTEM_PW;
-        }
-        document.getElementById("password-input")?.addEventListener("keydown", (e) => {
-            if (e.key === "Enter") verifyPassword();
-        });
-
-        function verifyPassword() {
-            const inputPw = document.getElementById("password-input").value;
-            if (inputPw !== SYSTEM_PW) {
-                document.getElementById("auth-error-msg").innerText = "비밀번호가 일치하지 않습니다.";
-                return;
-            }
-            closeAuthModal();
-            document.getElementById("login-screen").classList.add("hidden");
-            if (pendingRole === "PANEL") {
-                registerCurrentDeviceAsPanel();
-                showPanelScreen();
-            } else {
-                showUserDashboard();
-            }
-        }
-
-        function registerCurrentDeviceAsPanel() {
-            const existing = JSON.parse(localStorage.getItem(STORAGE_NODE_KEY));
-            const nodeInfo = {
-                registered: true,
-                deviceName: (existing && existing.deviceName) ? existing.deviceName : "Windows-Whisper-LLM-Node #01",
-                endpoint: (existing && existing.endpoint) ? existing.endpoint : "http://localhost:8000",
-                registeredAt: new Date().toLocaleString("ko-KR")
-            };
-            localStorage.setItem(STORAGE_NODE_KEY, JSON.stringify(nodeInfo));
-        }
-
-        function showPanelScreen() {
-            const nodeInfo = JSON.parse(localStorage.getItem(STORAGE_NODE_KEY));
-            document.getElementById("panel-device-name").innerText = nodeInfo.deviceName;
-            document.getElementById("panel-registered-time").innerText = nodeInfo.registeredAt;
-            document.getElementById("custom-device-input").value = nodeInfo.deviceName;
-            document.getElementById("panel-endpoint-input").value = nodeInfo.endpoint || "http://localhost:8000";
-            const panel = document.getElementById("panel-screen");
-            panel.classList.remove("hidden");
-            panel.classList.add("flex");
-        }
-
-        function updateDeviceName() {
-            const newName = document.getElementById("custom-device-input").value.trim();
-            const newEndpoint = document.getElementById("panel-endpoint-input").value.trim() || "http://localhost:8000";
-            if (!newName) return;
-            const nodeInfo = JSON.parse(localStorage.getItem(STORAGE_NODE_KEY)) || {};
-            nodeInfo.registered = true;
-            nodeInfo.deviceName = newName;
-            nodeInfo.endpoint = newEndpoint;
-            nodeInfo.registeredAt = new Date().toLocaleString("ko-KR");
-            localStorage.setItem(STORAGE_NODE_KEY, JSON.stringify(nodeInfo));
-            document.getElementById("panel-device-name").innerText = nodeInfo.deviceName;
-            document.getElementById("panel-registered-time").innerText = nodeInfo.registeredAt;
-        }
-
-        function switchToUserDirectly() {
-            document.getElementById("panel-screen").classList.add("hidden");
-            document.getElementById("panel-screen").classList.remove("flex");
-            showUserDashboard();
-        }
-
-        function logoutToHome() {
-            closeStudyingModeWindow();
-            document.getElementById("panel-screen").classList.add("hidden");
-            document.getElementById("panel-screen").classList.remove("flex");
-            document.getElementById("user-dashboard").classList.add("hidden");
-            document.getElementById("login-screen").classList.remove("hidden");
-            updateLoginNodePreview();
-        }
-
-        function showUserDashboard() {
-            document.getElementById("user-dashboard").classList.remove("hidden");
-            const nodeInfo = JSON.parse(localStorage.getItem(STORAGE_NODE_KEY));
-            const deviceDisplay = document.getElementById("compute-device-name");
-            const badge = document.getElementById("node-badge");
-
-            if (nodeInfo && nodeInfo.registered) {
-                deviceDisplay.innerText = `${nodeInfo.deviceName}`;
-                deviceDisplay.className = "mt-1 text-sm sm:text-base font-bold text-cyan-300 truncate";
-                badge.innerText = "ONLINE";
-                badge.className = "text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 border border-emerald-400/60 text-emerald-300 font-bold";
-            }
-
-            renderCalendar();
-            renderScheduleList();
-            // 대시보드 진입 즉시 상시 마이크 Listening 파이프라인 가동
-            initAlwaysOnVoicePipeline();
+        function setJarvisMessage(msg) {
+            const el = document.getElementById("jarvis-message");
+            if (el) el.innerText = msg;
         }
 
         function toggleStudyMode(skipPresetTrigger = false) {
@@ -1963,28 +2166,27 @@
             const timerText = document.getElementById("study-timer-text");
 
             if (isStudyActive) {
-                btn.classList.add("active");
-                badge.innerText = "ON";
+                btn.classList.add("active"); badge.innerText = "ON";
                 studySeconds = 0;
                 clearInterval(studyInterval);
                 studyInterval = setInterval(() => {
                     studySeconds++;
-                    const mins = String(Math.floor(studySeconds / 60)).padStart(2, "0");
-                    const secs = String(studySeconds % 60).padStart(2, "0");
-                    timerText.innerText = `화면분석 이투스 · 집중 타이머: ${mins}:${secs}`;
+                    const m = String(Math.floor(studySeconds / 60)).padStart(2, "0");
+                    const s = String(studySeconds % 60).padStart(2, "0");
+                    timerText.innerText = `화면분석 이투스 · 집중 타이머: ${m}:${s}`;
                 }, 1000);
                 if (!skipPresetTrigger) {
                     openStudyingModeWindow();
                     activateWorkspacePreset("study");
                 }
             } else {
-                btn.classList.remove("active");
-                badge.innerText = "OFF";
+                btn.classList.remove("active"); badge.innerText = "OFF";
                 clearInterval(studyInterval);
                 timerText.innerText = "화면분석 이투스 · 브라운노이즈";
                 if (!skipPresetTrigger) {
                     ambientEngine.stop();
                     setMonitorBrightness(100);
+                    patchCloudState({ isStudyActive: false, currentActiveMode: "none" });
                 }
             }
         }
@@ -1995,16 +2197,15 @@
             const badge = document.getElementById("badge-light");
             const subText = document.getElementById("light-sub-text");
             if (isLightOn) {
-                btn.classList.add("active");
-                badge.innerText = "ON";
-                subText.innerText = "IoT 스마트 조명 점등됨 (1)";
+                btn.classList.add("active"); badge.innerText = "ON";
+                subText.innerText = "IoT 스마트 조명 점등됨 (control_light=1)";
                 document.body.classList.add("room-light-on");
             } else {
-                btn.classList.remove("active");
-                badge.innerText = "OFF";
-                subText.innerText = "IoT 스마트 조명 소등 상태 (0)";
+                btn.classList.remove("active"); badge.innerText = "OFF";
+                subText.innerText = "IoT 스마트 조명 소등 상태 (control_light=0)";
                 document.body.classList.remove("room-light-on");
             }
+            if (!silentMsg) patchCloudState({ isLightOn: isLightOn });
         }
 
         function focusSchedulePanel() {
@@ -2026,12 +2227,11 @@
             const daysInMonth = new Date(year, month + 1, 0).getDate();
             for (let i = 0; i < firstDay; i++) grid.appendChild(document.createElement("div"));
             for (let day = 1; day <= daysInMonth; day++) {
-                const dateStr = `${year}-11-${String(day).padStart(2, "0")}`;
-                const isToday = day === todayDate;
+                const dateStr = `2026-11-${String(day).padStart(2, "0")}`;
                 const cell = document.createElement("button");
                 cell.type = "button";
                 cell.onclick = () => { selectedDateFilter = dateStr; renderCalendar(); renderScheduleList(); };
-                cell.className = `py-1 rounded text-xs cursor-pointer ${isToday ? "bg-cyan-400 text-slate-950 font-bold" : "text-cyan-100/80 hover:bg-cyan-500/20"}`;
+                cell.className = `py-1 rounded text-xs cursor-pointer ${day === todayDate ? "bg-cyan-400 text-slate-950 font-bold" : "text-cyan-100/80 hover:bg-cyan-500/20"}`;
                 cell.innerText = day;
                 grid.appendChild(cell);
             }
@@ -2043,6 +2243,10 @@
             const container = document.getElementById("schedule-items-container");
             if (!container) return;
             const filtered = selectedDateFilter ? schedules.filter(s => s.date === selectedDateFilter) : schedules;
+            if (filtered.length === 0) {
+                container.innerHTML = `<div class="text-cyan-400/50 py-2 text-center">등록된 일정이 없습니다.</div>`;
+                return;
+            }
             container.innerHTML = filtered.map(item => `
                 <div class="flex items-center justify-between bg-cyan-950/35 border border-cyan-500/20 px-2.5 py-1.5 rounded">
                     <div class="truncate pr-2">
@@ -2054,7 +2258,9 @@
             `).join("");
         }
 
-        function toggleAddScheduleForm() { document.getElementById("add-schedule-form")?.classList.toggle("hidden"); }
+        function toggleAddScheduleForm() {
+            document.getElementById("add-schedule-form").classList.toggle("hidden");
+        }
 
         function addScheduleItem() {
             const dateVal = document.getElementById("new-sched-date").value;
@@ -2062,24 +2268,33 @@
             const titleVal = document.getElementById("new-sched-title").value.trim();
             if (!dateVal || !titleVal) return;
             schedules.push({ id: Date.now(), date: dateVal, time: timeVal || "09:00", title: titleVal });
-            localStorage.setItem(STORAGE_SCHED_KEY, JSON.stringify(schedules));
             document.getElementById("new-sched-title").value = "";
             document.getElementById("add-schedule-form").classList.add("hidden");
-            renderScheduleList();
+            renderCalendar(); renderScheduleList();
+            patchCloudState({ schedules: schedules });
         }
 
         function deleteScheduleItem(id) {
             schedules = schedules.filter(s => s.id !== id);
-            localStorage.setItem(STORAGE_SCHED_KEY, JSON.stringify(schedules));
-            renderScheduleList();
+            renderCalendar(); renderScheduleList();
+            patchCloudState({ schedules: schedules });
         }
 
         function startClock() {
-            setInterval(() => {
+            const update = () => {
                 const el = document.getElementById("telemetry-clock");
                 if (el) el.innerText = new Date().toTimeString().split(" ")[0];
-            }, 1000);
+            };
+            update(); setInterval(update, 1000);
         }
+
+        window.addEventListener("DOMContentLoaded", () => {
+            startClock();
+            ambientEngine._clearVisualizer();
+            repositionDynamicUITargets(false);
+            pullStateFromCloud();
+            setInterval(() => pullStateFromCloud(false), 1200);
+        });
     </script>
 </body>
 </html>
