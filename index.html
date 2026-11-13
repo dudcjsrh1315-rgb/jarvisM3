@@ -3,167 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>J.A.R.V.I.S. AI Control System // studyingmode.py Integrated</title>
-    <script src="https://cdn.tailwindcss.com">
-        // =========================================================================
-        // 🌐 7. Firebase Realtime Database 멀티 디바이스 실시간 연동 엔진
-        //       엔드포인트: https://jarvis-70cfd-default-rtdb.firebaseio.com/jarvis_state.json
-        // =========================================================================
-        const FIREBASE_DB_URL = "https://jarvis-70cfd-default-rtdb.firebaseio.com/jarvis_state.json";
-        const CLIENT_SESSION_ID = "client_" + Math.random().toString(36).slice(2, 10);
-        let lastSyncedSignature = "";
-        let isApplyingRemoteState = false;
-        let lastHandledCommandTimestamp = 0;
-
-        function buildStateSignature(data) {
-            if (!data) return "";
-            return JSON.stringify({
-                node: data.node || null,
-                schedules: data.schedules || [],
-                isStudyActive: !!data.isStudyActive,
-                isLightOn: !!data.isLightOn,
-                currentActiveMode: data.currentActiveMode || "none",
-                remoteCmd: data.remoteCmd || null
-            });
-        }
-
-        async function pushStateToCloud(remoteCommandObj = null) {
-            if (isApplyingRemoteState) return;
-            const payload = {
-                node: JSON.parse(localStorage.getItem(STORAGE_NODE_KEY)),
-                schedules: schedules,
-                isStudyActive: isStudyActive,
-                isLightOn: isLightOn,
-                currentActiveMode: currentActiveMode,
-                remoteCmd: remoteCommandObj,
-                updatedBy: CLIENT_SESSION_ID,
-                updatedAt: Date.now()
-            };
-            lastSyncedSignature = buildStateSignature(payload);
-            try {
-                await fetch(FIREBASE_DB_URL, {
-                    method: "PUT",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(payload)
-                });
-            } catch (err) {
-                console.warn("[Firebase Sync] 클라우드 업로드 실패:", err);
-            }
-        }
-
-        async function pullStateFromCloud() {
-            try {
-                const res = await fetch(FIREBASE_DB_URL, { cache: "no-store" });
-                if (!res.ok) return;
-                const data = await res.json();
-                if (!data) return;
-
-                const incomingSig = buildStateSignature(data);
-                if (incomingSig === lastSyncedSignature) return;
-                lastSyncedSignature = incomingSig;
-
-                isApplyingRemoteState = true;
-                try {
-                    // 1) PANEL에서 등록된 로컬 LLM 연산 기기 동기화
-                    if (data.node) {
-                        localStorage.setItem(STORAGE_NODE_KEY, JSON.stringify(data.node));
-                        updateLoginNodePreview();
-                        if (!document.getElementById("user-dashboard").classList.contains("hidden")) {
-                            const deviceDisplay = document.getElementById("compute-device-name");
-                            const badge = document.getElementById("node-badge");
-                            const telemetryLlm = document.getElementById("telemetry-llm");
-                            if (data.node.registered) {
-                                deviceDisplay.innerText = data.node.deviceName;
-                                deviceDisplay.className = "mt-1 text-sm sm:text-base font-bold text-cyan-300 truncate";
-                                badge.innerText = "ONLINE";
-                                badge.className = "text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 border border-emerald-400/60 text-emerald-300 font-bold";
-                                telemetryLlm.innerText = "CONNECTED";
-                                telemetryLlm.className = "font-mono-code text-emerald-400";
-                            }
-                        }
-                    }
-
-                    // 2) 스케줄 데이터 동기화
-                    if (Array.isArray(data.schedules)) {
-                        schedules = data.schedules;
-                        localStorage.setItem(STORAGE_SCHED_KEY, JSON.stringify(schedules));
-                        renderCalendar();
-                        renderScheduleList();
-                    }
-
-                    // 3) 조명 상태 원격 동기화
-                    if (typeof data.isLightOn === "boolean" && data.isLightOn !== isLightOn) {
-                        toggleLightMode(true);
-                    }
-
-                    // 4) 공부 모드 및 작업 모드 프리셋 원격 동기화
-                    if (data.currentActiveMode && data.currentActiveMode !== currentActiveMode && data.currentActiveMode !== "none") {
-                        activateWorkspacePreset(data.currentActiveMode);
-                    } else if (typeof data.isStudyActive === "boolean" && data.isStudyActive !== isStudyActive) {
-                        toggleStudyMode(true);
-                    }
-
-                    // 5) 원격 음성/자연어 명령 또는 이투스/EBSi 실행 트리거 동기화
-                    if (data.remoteCmd && data.remoteCmd.ts && data.remoteCmd.ts > lastHandledCommandTimestamp) {
-                        lastHandledCommandTimestamp = data.remoteCmd.ts;
-                        if (data.updatedBy !== CLIENT_SESSION_ID) {
-                            if (data.remoteCmd.type === "utterance" && data.remoteCmd.value) {
-                                handleStudyingmodeCommand(data.remoteCmd.value);
-                            } else if (data.remoteCmd.type === "etoos") {
-                                runEtoosSmartLoginOnly();
-                            } else if (data.remoteCmd.type === "ebsi") {
-                                runEbsiLoginSequence();
-                            }
-                        }
-                    }
-                } finally {
-                    isApplyingRemoteState = false;
-                }
-            } catch (err) {
-                // 네트워크 일시 오류 무시
-            }
-        }
-
-        // 주요 액션 함수 호출 시 자동으로 Firebase Realtime DB에 즉시 동기화되도록 래핑
-        ["registerCurrentDeviceAsPanel", "updateDeviceName", "toggleStudyMode", "toggleLightMode", "addScheduleItem", "deleteScheduleItem", "activateWorkspacePreset"].forEach(fnName => {
-            const origFn = window[fnName];
-            if (typeof origFn === "function") {
-                window[fnName] = function(...args) {
-                    const result = origFn.apply(this, args);
-                    pushStateToCloud();
-                    return result;
-                };
-            }
-        });
-
-        const _origHandleCmd = window.handleStudyingmodeCommand;
-        window.handleStudyingmodeCommand = function(utterance) {
-            const res = _origHandleCmd(utterance);
-            pushStateToCloud({ type: "utterance", value: utterance, ts: Date.now() });
-            return res;
-        };
-
-        const _origRunEtoos = window.runEtoosSmartLoginOnly;
-        window.runEtoosSmartLoginOnly = function() {
-            const res = _origRunEtoos();
-            pushStateToCloud({ type: "etoos", ts: Date.now() });
-            return res;
-        };
-
-        const _origRunEbsi = window.runEbsiLoginSequence;
-        window.runEbsiLoginSequence = function() {
-            const res = _origRunEbsi();
-            pushStateToCloud({ type: "ebsi", ts: Date.now() });
-            return res;
-        };
-
-        // 1.2초 주기로 실시간 클라우드 상태 폴링 및 초기 동기화 수행
-        window.addEventListener("DOMContentLoaded", () => {
-            pullStateFromCloud();
-            setInterval(pullStateFromCloud, 1200);
-        });
-
-    </script>
+    <title>J.A.R.V.I.S. AI Control System // Cloud Sync v9.0</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Noto+Sans+KR:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -178,10 +19,7 @@
             --border-cyan: rgba(0, 242, 255, 0.45);
         }
 
-        * {
-            box-sizing: border-box;
-            user-select: none;
-        }
+        * { box-sizing: border-box; user-select: none; }
 
         body {
             background-color: var(--bg-dark);
@@ -195,12 +33,10 @@
             transition: background 0.6s ease;
         }
 
-        /* 조명 모드(불 켜짐) 시 은은한 앰비언트 효과 */
         body.room-light-on {
             background: radial-gradient(circle at 50% 35%, rgba(0, 242, 255, 0.16) 0%, rgba(10, 30, 58, 0.96) 55%, #02060d 100%);
         }
 
-        /* 모니터 밝기 조절 오버레이 (set_monitor_brightness 반영) */
         #brightness-overlay {
             position: fixed;
             inset: 0;
@@ -211,7 +47,6 @@
             transition: opacity 0.45s ease;
         }
 
-        /* HUD 그리드 및 스캔라인 배경 */
         .hud-grid {
             position: fixed;
             inset: 0;
@@ -232,15 +67,9 @@
             z-index: 1;
         }
 
-        .font-orbitron {
-            font-family: 'Orbitron', sans-serif;
-        }
+        .font-orbitron { font-family: 'Orbitron', sans-serif; }
+        .font-mono-code { font-family: 'JetBrains Mono', monospace; }
 
-        .font-mono-code {
-            font-family: 'JetBrains Mono', monospace;
-        }
-
-        /* 네온 글로우 및 HUD 패널 스타일 */
         .hud-panel {
             background: var(--panel-bg);
             border: 1px solid var(--border-cyan);
@@ -258,14 +87,8 @@
             border-style: solid;
             pointer-events: none;
         }
-        .hud-panel::before {
-            top: -1px; left: -1px;
-            border-width: 2px 0 0 2px;
-        }
-        .hud-panel::after {
-            bottom: -1px; right: -1px;
-            border-width: 0 2px 2px 0;
-        }
+        .hud-panel::before { top: -1px; left: -1px; border-width: 2px 0 0 2px; }
+        .hud-panel::after { bottom: -1px; right: -1px; border-width: 0 2px 2px 0; }
 
         .neon-text {
             color: var(--neon-cyan);
@@ -305,7 +128,6 @@
             box-shadow: 0 0 20px rgba(0, 242, 255, 0.4), inset 0 0 10px rgba(0, 242, 255, 0.2);
         }
 
-        /* 중앙 JARVIS 아크 리액터 애니메이션 */
         .reactor-wrapper {
             position: relative;
             width: 230px;
@@ -366,84 +188,49 @@
             transition: all 0.4s ease;
         }
 
-        /* 모드별 코어 테마 강조 */
-        .mode-study .reactor-core {
-            border-color: #00f2ff;
-            box-shadow: 0 0 38px #00f2ff, inset 0 0 25px #00f2ff;
-        }
-        .mode-coding .reactor-core {
-            border-color: #00ffaa;
-            box-shadow: 0 0 38px #00ffaa, inset 0 0 25px #00ffaa;
-        }
-        .mode-game .reactor-core {
-            border-color: #ffb84d;
-            box-shadow: 0 0 38px #ffb84d, inset 0 0 25px #ffb84d;
-        }
-        .mode-rest .reactor-core {
-            border-color: #c792ea;
-            box-shadow: 0 0 38px #c792ea, inset 0 0 25px #c792ea;
-        }
+        .mode-study .reactor-core { border-color: #00f2ff; box-shadow: 0 0 38px #00f2ff, inset 0 0 25px #00f2ff; }
+        .mode-coding .reactor-core { border-color: #00ffaa; box-shadow: 0 0 38px #00ffaa, inset 0 0 25px #00ffaa; }
+        .mode-game .reactor-core { border-color: #ffb84d; box-shadow: 0 0 38px #ffb84d, inset 0 0 25px #ffb84d; }
+        .mode-rest .reactor-core { border-color: #c792ea; box-shadow: 0 0 38px #c792ea, inset 0 0 25px #c792ea; }
 
-        @keyframes spin-cw {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-        @keyframes spin-ccw {
-            from { transform: rotate(360deg); }
-            to { transform: rotate(0deg); }
-        }
-        @keyframes pulse-core {
-            0%, 100% { transform: scale(1); opacity: 0.85; }
-            50% { transform: scale(1.03); opacity: 1; }
-        }
+        @keyframes spin-cw { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes spin-ccw { from { transform: rotate(360deg); } to { transform: rotate(0deg); } }
+        @keyframes pulse-core { 0%, 100% { transform: scale(1); opacity: 0.85; } 50% { transform: scale(1.03); opacity: 1; } }
 
-        /* 이투스 1024x640 가상 화면 마우스 커서 트랜지션 */
         #virtual-cursor {
             transition: left 0.32s cubic-bezier(0.22, 1, 0.36, 1), top 0.32s cubic-bezier(0.22, 1, 0.36, 1);
         }
 
-        .click-ripple {
-            animation: ripple-ping 0.65s ease-out forwards;
-        }
+        .click-ripple { animation: ripple-ping 0.65s ease-out forwards; }
+        @keyframes ripple-ping { 0% { transform: scale(0.4); opacity: 1; } 100% { transform: scale(2.4); opacity: 0; } }
 
-        @keyframes ripple-ping {
-            0% { transform: scale(0.4); opacity: 1; }
-            100% { transform: scale(2.4); opacity: 0; }
-        }
-
-        /* 커스텀 스크롤바 */
-        ::-webkit-scrollbar {
-            width: 5px;
-            height: 5px;
-        }
-        ::-webkit-scrollbar-track {
-            background: rgba(2, 6, 13, 0.7);
-        }
-        ::-webkit-scrollbar-thumb {
-            background: rgba(0, 242, 255, 0.45);
-            border-radius: 3px;
-        }
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: rgba(2, 6, 13, 0.7); }
+        ::-webkit-scrollbar-thumb { background: rgba(0, 242, 255, 0.45); border-radius: 3px; }
     </style>
 </head>
 <body class="flex flex-col justify-between">
-    <!-- 모니터 밝기 오버레이 (set_monitor_brightness 구현) -->
     <div id="brightness-overlay"></div>
     <div class="hud-grid"></div>
     <div class="hud-scanline"></div>
 
-    <!-- ========================================================== -->
-    <!-- 1. 초기 접속 화면 (USER / PANEL 선택)                       -->
-    <!-- ========================================================== -->
+    <!-- 우측 상단 고정 클라우드 DB 통신 상태 배지 -->
+    <div class="fixed top-2 right-2 z-50 px-2.5 py-1 rounded bg-[#030914]/90 border border-cyan-500/40 text-[10px] font-mono-code flex items-center gap-1.5">
+        <span id="cloud-sync-dot" class="w-2 h-2 rounded-full bg-amber-400"></span>
+        <span id="cloud-sync-text" class="text-cyan-200">CLOUD DB: CONNECTING...</span>
+    </div>
+
+    <!-- 1. 초기 접속 화면 (USER / PANEL 선택) -->
     <section id="login-screen" class="relative z-10 flex flex-col items-center justify-center min-h-screen px-4">
         <div class="text-center mb-12">
             <div class="inline-block px-3 py-1 mb-3 text-xs tracking-[0.3em] border border-cyan-400/40 rounded-full text-cyan-300 bg-cyan-950/30">
-                STARK INDUSTRIES // AI INTERFACE v8.0
+                STARK INDUSTRIES // AI INTERFACE v9.0 CLOUD SYNC
             </div>
             <h1 class="font-orbitron text-4xl sm:text-6xl font-black tracking-[0.22em] neon-text">
                 J.A.R.V.I.S.
             </h1>
             <p class="mt-3 text-sm sm:text-base text-cyan-200/70 tracking-wider">
-                접속 모드를 선택하십시오 (studyingmode.py 엔진 탑재)
+                접속 모드를 선택하십시오 (Firebase 실시간 기기 연동 탑재)
             </p>
         </div>
 
@@ -458,16 +245,13 @@
             </button>
         </div>
 
-        <!-- 현재 등록된 연산 노드 미리보기 상태 -->
         <div id="login-node-status" class="mt-10 text-xs text-cyan-300/70 flex items-center gap-2">
             <span class="w-2 h-2 rounded-full bg-gray-500" id="login-status-dot"></span>
-            <span id="login-status-text">현재 등록된 로컬 LLM 연산 기기: 확인 중...</span>
+            <span id="login-status-text">현재 등록된 로컬 LLM 연산 기기: 클라우드 조회 중...</span>
         </div>
     </section>
 
-    <!-- ========================================================== -->
-    <!-- 비밀번호 인증 모달                                          -->
-    <!-- ========================================================== -->
+    <!-- 비밀번호 인증 모달 -->
     <div id="auth-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 backdrop-blur-sm px-4">
         <div class="hud-panel w-full max-w-sm p-6 rounded-lg text-center">
             <div class="flex justify-between items-center mb-4">
@@ -495,31 +279,28 @@
         </div>
     </div>
 
-    <!-- ========================================================== -->
-    <!-- 2. PANEL 화면 (로컬 LLM 연산 기기 등록)                     -->
-    <!-- ========================================================== -->
+    <!-- 2. PANEL 화면 (로컬 LLM 연산 기기 등록) -->
     <section id="panel-screen" class="relative z-10 hidden flex-col items-center justify-center min-h-screen px-4">
         <div class="hud-panel w-full max-w-lg p-8 rounded-xl text-center">
             <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-400/50 text-emerald-300 text-xs mb-4">
                 <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-                LOCAL LLM COMPUTE NODE ACTIVE
+                LOCAL LLM COMPUTE NODE ACTIVE (CLOUD SYNCED)
             </div>
             <h2 class="font-orbitron text-2xl sm:text-3xl font-bold neon-text mb-2">
                 연산 기기 등록 완료
             </h2>
             <p class="text-sm text-cyan-100/80 mb-6">
-                현재 단말기가 J.A.R.V.I.S.의 로컬 LLM 추론 및 연산 노드로 등록되었습니다.
+                현재 단말기가 Firebase 클라우드를 통해 모든 기기의 J.A.R.V.I.S. 연산 노드로 공유되었습니다.
             </p>
 
-            <!-- 기기 정보 박스 -->
             <div class="bg-[#030812]/90 border border-cyan-500/30 rounded-lg p-4 text-left space-y-2.5 mb-6 text-xs sm:text-sm">
                 <div class="flex justify-between">
                     <span class="text-cyan-400/80">등록된 기기명:</span>
                     <span id="panel-device-name" class="font-bold text-white">Local-LLM-Node</span>
                 </div>
                 <div class="flex justify-between">
-                    <span class="text-cyan-400/80">연산 엔진 상태:</span>
-                    <span class="text-emerald-400 font-semibold">ONLINE / STANDBY</span>
+                    <span class="text-cyan-400/80">클라우드 동기화 상태:</span>
+                    <span id="panel-cloud-status" class="text-emerald-400 font-semibold">FIREBASE RTDB 전송 완료</span>
                 </div>
                 <div class="flex justify-between">
                     <span class="text-cyan-400/80">등록 시각:</span>
@@ -527,40 +308,34 @@
                 </div>
             </div>
 
-            <!-- 기기 이름 커스텀 수정 -->
             <div class="mb-6 text-left">
                 <label class="block text-xs text-cyan-300 mb-1.5">연산 기기 식별 이름 변경 (선택)</label>
                 <div class="flex gap-2">
-                    <input type="text" id="custom-device-input" placeholder="예: Main-RTX4090-PC"
+                    <input type="text" id="custom-device-input" placeholder="예: Main-RTX5070-PC"
                         class="flex-1 px-3 py-2 rounded bg-[#030710] border border-cyan-500/50 text-sm text-white focus:outline-none focus:border-cyan-300">
                     <button onclick="updateDeviceName()"
-                        class="px-4 py-2 rounded border border-cyan-400 text-cyan-300 text-xs font-bold hover:bg-cyan-400 hover:text-slate-950 transition">
-                        적용
+                        class="px-4 py-2 rounded border border-cyan-400 text-cyan-300 text-xs font-bold hover:bg-cyan-400 hover:text-slate-950 transition cursor-pointer">
+                        클라우드 적용
                     </button>
                 </div>
             </div>
 
             <div class="flex flex-col sm:flex-row gap-3">
                 <button onclick="switchToUserDirectly()"
-                    class="flex-1 py-3 rounded-lg bg-cyan-400 text-slate-950 font-bold text-sm hover:bg-cyan-300 transition shadow-[0_0_15px_rgba(0,242,255,0.4)]">
+                    class="flex-1 py-3 rounded-lg bg-cyan-400 text-slate-950 font-bold text-sm hover:bg-cyan-300 transition shadow-[0_0_15px_rgba(0,242,255,0.4)] cursor-pointer">
                     USER 대시보드로 이동
                 </button>
                 <button onclick="logoutToHome()"
-                    class="py-3 px-5 rounded-lg border border-cyan-500/40 text-cyan-300 text-sm hover:bg-cyan-950/50 transition">
+                    class="py-3 px-5 rounded-lg border border-cyan-500/40 text-cyan-300 text-sm hover:bg-cyan-950/50 transition cursor-pointer">
                     메인으로 돌아가기
                 </button>
             </div>
         </div>
     </section>
 
-    <!-- ========================================================== -->
-    <!-- 3. USER 메인 대시보드                                       -->
-    <!-- ========================================================== -->
+    <!-- 3. USER 메인 대시보드 -->
     <main id="user-dashboard" class="relative z-10 hidden min-h-screen w-full p-4 lg:p-6 flex flex-col justify-between">
-        
-        <!-- 상단 바: 좌측 타이틀 & 우측 상단 연산 기기 표시 -->
-        <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <!-- 좌측 시스템 헤더 -->
+        <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mt-4 sm:mt-0">
             <div class="flex items-center gap-3">
                 <div class="w-3 h-3 rounded-full bg-cyan-400 shadow-[0_0_10px_#00f2ff]"></div>
                 <div>
@@ -569,7 +344,6 @@
                 </div>
             </div>
 
-            <!-- 우측 상단: 등록된 로컬 LLM 연산 기기 출력 -->
             <div class="hud-panel px-4 py-3 rounded-lg self-end sm:self-auto min-w-[260px]">
                 <div class="flex items-center justify-between gap-4">
                     <span class="text-[11px] tracking-wider text-cyan-300/80 uppercase">연산 기기 (Local LLM)</span>
@@ -578,15 +352,12 @@
                     </span>
                 </div>
                 <div id="compute-device-name" class="mt-1 text-sm sm:text-base font-bold text-white truncate">
-                    미등록 (PANEL 등록 필요)
+                    클라우드에서 확인 중...
                 </div>
             </div>
         </header>
 
-        <!-- 중단 영역: 좌측 원클릭 모드 + 중앙 JARVIS 코어 로고 + 우측 텔레메트리 -->
         <div class="my-4 lg:my-2 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center flex-1">
-            
-            <!-- 좌측: 원클릭 모드 컨트롤 패널 (studyingmode.py 완벽 반영) -->
             <aside class="lg:col-span-3 flex flex-col gap-3 order-2 lg:order-1">
                 <div class="hud-panel p-4 rounded-xl">
                     <div class="flex items-center justify-between border-b border-cyan-500/30 pb-2 mb-3">
@@ -595,7 +366,6 @@
                     </div>
 
                     <div class="space-y-2.5">
-                        <!-- 1) 공부 모드 (studyingmode.py 메인 프리셋 실행 + 작업 모드 팝업 연동) -->
                         <div class="space-y-1.5">
                             <button id="btn-study-mode" onclick="toggleStudyMode()"
                                 class="mode-btn w-full p-3 rounded-lg flex items-center justify-between text-left cursor-pointer">
@@ -611,7 +381,6 @@
                                 </span>
                             </button>
 
-                            <!-- 공부 모드 하위 퀵 액션 바 (작업 모드 창 열기 & 이투스 직행) -->
                             <div class="grid grid-cols-2 gap-1.5">
                                 <button onclick="openStudyingModeWindow()"
                                     class="py-2 px-2.5 rounded bg-[#041328] hover:bg-cyan-500/25 border border-cyan-400/50 text-[11px] font-bold text-cyan-300 flex items-center justify-center gap-1 transition shadow-[0_0_10px_rgba(0,242,255,0.12)] cursor-pointer">
@@ -626,7 +395,6 @@
                             </div>
                         </div>
 
-                        <!-- 2) 불 껐다 키기 (IoT.control_light 연동) -->
                         <button id="btn-light-mode" onclick="toggleLightMode()"
                             class="mode-btn w-full p-3 rounded-lg flex items-center justify-between text-left cursor-pointer">
                             <div>
@@ -640,7 +408,6 @@
                             </span>
                         </button>
 
-                        <!-- 3) 스케쥴 관리 -->
                         <button id="btn-schedule-mode" onclick="focusSchedulePanel()"
                             class="mode-btn active w-full p-3 rounded-lg flex items-center justify-between text-left cursor-pointer">
                             <div>
@@ -655,23 +422,21 @@
                         </button>
                     </div>
 
-                    <!-- 실시간 백색소음 미니 상태 바 (WhiteNoiseSynthesizer) -->
                     <div class="mt-3 pt-2.5 border-t border-cyan-500/30 flex items-center justify-between text-xs">
                         <div class="flex items-center gap-1.5">
                             <span id="mini-noise-dot" class="w-2 h-2 rounded-full bg-slate-500"></span>
                             <span id="mini-noise-label" class="text-[11px] text-cyan-200/80">🔇 백색소음: 정지</span>
                         </div>
                         <div class="flex gap-1">
-                            <button onclick="startWhiteNoise('brown', 0.32)" title="브라운 노이즈" class="px-1.5 py-0.5 rounded bg-cyan-950/80 border border-cyan-500/30 text-[10px] hover:border-cyan-300">📚브라운</button>
-                            <button onclick="startWhiteNoise('binaural', 0.28)" title="바이노럴 비트 (200Hz/214Hz)" class="px-1.5 py-0.5 rounded bg-cyan-950/80 border border-amber-500/30 text-[10px] text-amber-300 hover:border-amber-300">🧠바이노럴</button>
-                            <button onclick="startWhiteNoise('rain', 0.35)" title="빗소리" class="px-1.5 py-0.5 rounded bg-cyan-950/80 border border-emerald-500/30 text-[10px] text-emerald-300 hover:border-emerald-300">🌧️빗소리</button>
-                            <button onclick="stopWhiteNoise()" title="정지" class="px-1.5 py-0.5 rounded bg-rose-950/80 border border-rose-500/40 text-[10px] text-rose-300 hover:border-rose-300">🔇</button>
+                            <button onclick="startWhiteNoise('brown', 0.32)" class="px-1.5 py-0.5 rounded bg-cyan-950/80 border border-cyan-500/30 text-[10px] hover:border-cyan-300">📚브라운</button>
+                            <button onclick="startWhiteNoise('binaural', 0.28)" class="px-1.5 py-0.5 rounded bg-cyan-950/80 border border-amber-500/30 text-[10px] text-amber-300 hover:border-amber-300">🧠바이노럴</button>
+                            <button onclick="startWhiteNoise('rain', 0.35)" class="px-1.5 py-0.5 rounded bg-cyan-950/80 border border-emerald-500/30 text-[10px] text-emerald-300 hover:border-emerald-300">🌧️빗소리</button>
+                            <button onclick="stopWhiteNoise()" class="px-1.5 py-0.5 rounded bg-rose-950/80 border border-rose-500/40 text-[10px] text-rose-300 hover:border-rose-300">🔇</button>
                         </div>
                     </div>
                 </div>
             </aside>
 
-            <!-- 가운데: JARVIS 로고, 음성/자연어 명령 입력기(handle_studyingmode_command), 상태 브리핑 -->
             <section class="lg:col-span-6 flex flex-col items-center justify-center py-2 order-1 lg:order-2">
                 <div id="reactor-container" onclick="openStudyingModeWindow()" class="reactor-wrapper cursor-pointer group" title="클릭하여 ◈ 작업 모드 제어창 열기">
                     <div class="reactor-outer"></div>
@@ -688,7 +453,6 @@
                     </div>
                 </div>
 
-                <!-- AI 음성/텍스트 상태 메시지 브리핑 -->
                 <div class="mt-4 max-w-xl w-full text-center px-2">
                     <div class="inline-block px-4 py-2 rounded-full bg-cyan-950/60 border border-cyan-400/40 text-xs sm:text-sm text-cyan-200 shadow-[0_0_15px_rgba(0,242,255,0.15)]">
                         <span class="text-cyan-400 font-bold mr-1.5">[JARVIS]</span>
@@ -696,17 +460,15 @@
                     </div>
                 </div>
 
-                <!-- studyingmode.py 음성 & 자연어 명령어 입력 바 (handle_studyingmode_command 구현) -->
                 <div class="mt-3 w-full max-w-lg px-2">
                     <div class="hud-panel p-2 rounded-lg flex items-center gap-2">
                         <button id="voice-mic-btn" onclick="toggleVoiceRecognition()" type="button"
-                            class="px-2.5 py-1.5 rounded bg-cyan-500/15 border border-cyan-400/50 text-cyan-300 hover:bg-cyan-400 hover:text-slate-950 transition text-xs font-bold flex items-center gap-1 shrink-0 cursor-pointer"
-                            title="음성 명령 인식">
+                            class="px-2.5 py-1.5 rounded bg-cyan-500/15 border border-cyan-400/50 text-cyan-300 hover:bg-cyan-400 hover:text-slate-950 transition text-xs font-bold flex items-center gap-1 shrink-0 cursor-pointer">
                             <span id="mic-icon">🎙️</span>
                             <span class="hidden sm:inline">음성인식</span>
                         </button>
                         <input id="jarvis-command-input" type="text"
-                            placeholder="명령어 입력 (예: 공부 모드, 이투스 열어, EBSi 로그인, 코딩 모드, 빗소리 틀어, 화면 분할)"
+                            placeholder="명령어 입력 (예: 공부 모드, 이투스 열어, EBSi 로그인, 코딩 모드, 빗소리 틀어)"
                             class="flex-1 bg-transparent text-xs text-white placeholder-cyan-400/45 focus:outline-none px-1">
                         <button onclick="executeVoiceOrTextCommand()" type="button"
                             class="px-3 py-1.5 rounded bg-cyan-400 text-slate-950 font-bold text-xs hover:bg-cyan-300 transition shrink-0 cursor-pointer">
@@ -716,7 +478,6 @@
                 </div>
             </section>
 
-            <!-- 우측: CORE TELEMETRY & studyingmode.py 실시간 상태 모니터 -->
             <div class="lg:col-span-3 flex flex-col items-end justify-center order-3">
                 <div class="hud-panel p-4 rounded-xl w-full lg:max-w-[280px] space-y-2.5">
                     <div class="flex items-center justify-between border-b border-cyan-500/30 pb-1.5">
@@ -729,7 +490,7 @@
                     </div>
                     <div class="text-xs text-cyan-200/80 flex justify-between">
                         <span>현재 시각</span>
-                        <span id="telemetry-clock" class="font-mono-code text-cyan-300">15:13:00</span>
+                        <span id="telemetry-clock" class="font-mono-code text-cyan-300">16:37:00</span>
                     </div>
                     <div class="text-xs text-cyan-200/80 flex justify-between">
                         <span>LLM 추론 모듈</span>
@@ -748,7 +509,6 @@
                         <span id="telemetry-killed" class="font-mono-code text-rose-300">0건</span>
                     </div>
 
-                    <!-- 미니 창 분할 프리뷰 박스 (arrange_windows_split 시각화) -->
                     <div class="pt-1">
                         <div class="text-[10px] text-cyan-400/70 mb-1 flex justify-between">
                             <span>WINDOW SPLIT PREVIEW</span>
@@ -764,10 +524,7 @@
             </div>
         </div>
 
-        <!-- 하단 영역: 좌측 하단 스케쥴 캘린더 + 우측 하단 모드 전환 버튼 -->
         <footer class="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-4 mt-2">
-            
-            <!-- 좌측 하단: 스케쥴 캘린더 출력 -->
             <div id="schedule-calendar-panel" class="hud-panel w-full lg:w-[410px] p-4 rounded-xl transition-all duration-300">
                 <div class="flex items-center justify-between mb-2.5">
                     <div class="flex items-center gap-2">
@@ -782,7 +539,6 @@
                     </button>
                 </div>
 
-                <!-- 일정 추가 입력 폼 (토글) -->
                 <div id="add-schedule-form" class="hidden mb-3 p-2.5 rounded bg-[#030812] border border-cyan-500/40 space-y-2">
                     <div class="flex gap-2">
                         <input type="date" id="new-sched-date" value="2026-11-13"
@@ -800,7 +556,6 @@
                     </div>
                 </div>
 
-                <!-- 미니 월간 달력 그리드 -->
                 <div class="grid grid-cols-7 gap-1 text-center text-[11px] mb-2.5">
                     <div class="text-rose-400 font-bold">일</div>
                     <div class="text-cyan-300">월</div>
@@ -810,23 +565,17 @@
                     <div class="text-cyan-300">금</div>
                     <div class="text-sky-400 font-bold">토</div>
                 </div>
-                <div id="calendar-days-grid" class="grid grid-cols-7 gap-1 text-center text-xs mb-3">
-                    <!-- JS로 날짜 렌더링 -->
-                </div>
+                <div id="calendar-days-grid" class="grid grid-cols-7 gap-1 text-center text-xs mb-3"></div>
 
-                <!-- 선택된 날짜 또는 전체 일정 목록 -->
                 <div class="border-t border-cyan-500/30 pt-2">
                     <div class="flex justify-between items-center text-[11px] text-cyan-300/80 mb-1.5">
                         <span id="schedule-list-header">등록된 스케쥴 목록</span>
                         <button onclick="showAllSchedules()" class="underline hover:text-white text-[10px] cursor-pointer">전체보기</button>
                     </div>
-                    <div id="schedule-items-container" class="max-h-24 overflow-y-auto space-y-1.5 pr-1 text-xs">
-                        <!-- JS로 일정 렌더링 -->
-                    </div>
+                    <div id="schedule-items-container" class="max-h-24 overflow-y-auto space-y-1.5 pr-1 text-xs"></div>
                 </div>
             </div>
 
-            <!-- 우측 하단: 작업 모드 제어창 버튼 & 모드 전환 / 로그아웃 버튼 -->
             <div class="self-end flex flex-wrap gap-2">
                 <button onclick="openStudyingModeWindow()"
                     class="px-4 py-2 rounded-lg border border-cyan-400 bg-cyan-500/20 text-xs font-bold text-cyan-200 hover:bg-cyan-400 hover:text-slate-950 transition flex items-center gap-2 shadow-[0_0_15px_rgba(0,242,255,0.25)] cursor-pointer">
@@ -842,18 +591,14 @@
         </footer>
     </main>
 
-    <!-- ========================================================================= -->
-    <!-- 🖥️ 4. J.A.R.V.I.S. 작업 모드 팝업 (studyingmode.py open_studying_mode_window) -->
-    <!-- ========================================================================= -->
+    <!-- 4. 작업 모드 팝업 -->
     <div id="studying-mode-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 backdrop-blur-md p-2 sm:p-4 overflow-y-auto">
         <div class="w-full max-w-5xl bg-[#02060d] border-2 border-[#00f2ff] rounded-xl shadow-[0_0_45px_rgba(0,242,255,0.3)] overflow-hidden my-auto">
-            
-            <!-- 상단 헤더 (studyingmode.py의 hdr 프레임 재현) -->
             <div class="bg-[#041328] border-b border-[#00f2ff] px-4 py-2.5 flex items-center justify-between">
                 <div class="flex items-center gap-3">
                     <span class="text-[#00f2ff] font-bold text-sm sm:text-base tracking-wide">◈ 작업 모드 (J.A.R.V.I.S. studyingmode.py)</span>
                     <span class="hidden sm:inline-block text-[11px] font-mono-code px-2 py-0.5 rounded bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
-                        v8.0 Smart Login &amp; WhiteNoise Engine
+                        v9.0 Smart Login &amp; Cloud Sync
                     </span>
                 </div>
                 <button onclick="closeStudyingModeWindow()"
@@ -862,7 +607,6 @@
                 </button>
             </div>
 
-            <!-- 상태 피드백 라벨 (lbl_feedback 재현) -->
             <div class="px-4 py-2 bg-[#02060d] border-b border-cyan-900/60 flex flex-wrap items-center justify-between gap-2">
                 <div id="popup-lbl-feedback" class="text-xs sm:text-sm font-bold text-[#00ffaa] flex items-center gap-2">
                     <span>● 대기 (원클릭 프리셋 또는 이투스 수강중 강좌 버튼을 클릭하세요)</span>
@@ -873,13 +617,8 @@
                 </div>
             </div>
 
-            <!-- 메인 바디: 좌측(프리셋 카드 & 사운드/분할) + 우측(이투스 스마트 로그인 분기 & 좌표 시뮬레이터) -->
             <div class="p-4 grid grid-cols-1 lg:grid-cols-12 gap-4">
-                
-                <!-- 좌측 컬럼 (7칸): 이투스 퀵바 + 4대 프리셋 카드 + 사운드·분할 컨트롤 박스 -->
                 <div class="lg:col-span-7 flex flex-col justify-between space-y-3">
-                    
-                    <!-- 1) 이투스 수강중 강좌 퀵 바 (study_quick_bar 재현) -->
                     <div class="bg-[#051020] border border-[#00f2ff] rounded-lg p-2 flex flex-col sm:flex-row gap-2">
                         <button onclick="runEtoosSmartLoginOnly()"
                             class="flex-1 bg-[#0b2c4d] hover:bg-[#00f2ff] text-[#00f2ff] hover:text-[#02060d] font-bold text-xs sm:text-sm py-2.5 px-4 rounded transition flex items-center justify-center gap-2 cursor-pointer shadow-[0_0_12px_rgba(0,242,255,0.2)]">
@@ -891,10 +630,8 @@
                         </button>
                     </div>
 
-                    <!-- 2) 4대 작업 모드 프리셋 2x2 그리드 (WORKSPACE_PRESETS 재현) -->
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <!-- 카드 1: 공부 모드 -->
-                        <div id="preset-card-study" class="bg-[#051020] border border-[#00f2ff] rounded-lg p-3.5 flex flex-col justify-between hover:shadow-[0_0_18px_rgba(0,242,255,0.25)] transition">
+                        <div class="bg-[#051020] border border-[#00f2ff] rounded-lg p-3.5 flex flex-col justify-between">
                             <div>
                                 <div class="flex items-center justify-between">
                                     <span class="text-[#00f2ff] font-bold text-sm">📚 공부 모드</span>
@@ -912,8 +649,7 @@
                             </button>
                         </div>
 
-                        <!-- 카드 2: 코딩 모드 -->
-                        <div id="preset-card-coding" class="bg-[#051020] border border-[#00ffaa] rounded-lg p-3.5 flex flex-col justify-between hover:shadow-[0_0_18px_rgba(0,255,170,0.25)] transition">
+                        <div class="bg-[#051020] border border-[#00ffaa] rounded-lg p-3.5 flex flex-col justify-between">
                             <div>
                                 <div class="flex items-center justify-between">
                                     <span class="text-[#00ffaa] font-bold text-sm">💻 코딩 모드</span>
@@ -931,8 +667,7 @@
                             </button>
                         </div>
 
-                        <!-- 카드 3: 게임 모드 -->
-                        <div id="preset-card-game" class="bg-[#051020] border border-[#ffb84d] rounded-lg p-3.5 flex flex-col justify-between hover:shadow-[0_0_18px_rgba(255,184,77,0.25)] transition">
+                        <div class="bg-[#051020] border border-[#ffb84d] rounded-lg p-3.5 flex flex-col justify-between">
                             <div>
                                 <div class="flex items-center justify-between">
                                     <span class="text-[#ffb84d] font-bold text-sm">🎮 게임 모드</span>
@@ -950,8 +685,7 @@
                             </button>
                         </div>
 
-                        <!-- 카드 4: 휴식 모드 -->
-                        <div id="preset-card-rest" class="bg-[#051020] border border-[#c792ea] rounded-lg p-3.5 flex flex-col justify-between hover:shadow-[0_0_18px_rgba(199,146,234,0.25)] transition">
+                        <div class="bg-[#051020] border border-[#c792ea] rounded-lg p-3.5 flex flex-col justify-between">
                             <div>
                                 <div class="flex items-center justify-between">
                                     <span class="text-[#c792ea] font-bold text-sm">☕ 휴식 모드</span>
@@ -970,37 +704,18 @@
                         </div>
                     </div>
 
-                    <!-- 3) 하단 사운드·분할 제어 바 (ctrl_box 재현 + 오디오 파형 캔버스 & 볼륨 슬라이더) -->
                     <div class="bg-[#051020] border border-[#0b5c8f] rounded-lg p-3 space-y-2.5">
                         <div class="flex flex-wrap items-center justify-between gap-2">
-                            <span class="text-[#ffb84d] font-bold text-xs flex items-center gap-1.5">
-                                <span>🎧 사운드·분할 (WhiteNoiseSynthesizer)</span>
-                            </span>
+                            <span class="text-[#ffb84d] font-bold text-xs">🎧 사운드·분할 (WhiteNoiseSynthesizer)</span>
                             <div class="flex flex-wrap gap-1.5">
-                                <button onclick="startWhiteNoise('brown', 0.32)"
-                                    class="bg-[#0b2847] hover:bg-cyan-800 text-[#e8fbff] font-bold text-xs px-2.5 py-1.5 rounded transition cursor-pointer">
-                                    📚 브라운
-                                </button>
-                                <button onclick="startWhiteNoise('binaural', 0.28)"
-                                    class="bg-[#0b2847] hover:bg-amber-800 text-[#ffb84d] font-bold text-xs px-2.5 py-1.5 rounded transition cursor-pointer">
-                                    🧠 바이노럴
-                                </button>
-                                <button onclick="startWhiteNoise('rain', 0.35)"
-                                    class="bg-[#0b2847] hover:bg-emerald-800 text-[#00ffaa] font-bold text-xs px-2.5 py-1.5 rounded transition cursor-pointer">
-                                    🌧️ 빗소리
-                                </button>
-                                <button onclick="arrangeWindowsSplit('side_by_side')"
-                                    class="bg-[#0b2847] hover:bg-cyan-700 text-[#00f2ff] font-bold text-xs px-2.5 py-1.5 rounded transition cursor-pointer">
-                                    🪟 화면분할
-                                </button>
-                                <button onclick="stopWhiteNoise()"
-                                    class="bg-[#2b0f1c] hover:bg-rose-700 text-[#ff3b5c] hover:text-white font-bold text-xs px-2.5 py-1.5 rounded transition cursor-pointer">
-                                    🔇 정지
-                                </button>
+                                <button onclick="startWhiteNoise('brown', 0.32)" class="bg-[#0b2847] hover:bg-cyan-800 text-[#e8fbff] font-bold text-xs px-2.5 py-1.5 rounded transition cursor-pointer">📚 브라운</button>
+                                <button onclick="startWhiteNoise('binaural', 0.28)" class="bg-[#0b2847] hover:bg-amber-800 text-[#ffb84d] font-bold text-xs px-2.5 py-1.5 rounded transition cursor-pointer">🧠 바이노럴</button>
+                                <button onclick="startWhiteNoise('rain', 0.35)" class="bg-[#0b2847] hover:bg-emerald-800 text-[#00ffaa] font-bold text-xs px-2.5 py-1.5 rounded transition cursor-pointer">🌧️ 빗소리</button>
+                                <button onclick="arrangeWindowsSplit('side_by_side')" class="bg-[#0b2847] hover:bg-cyan-700 text-[#00f2ff] font-bold text-xs px-2.5 py-1.5 rounded transition cursor-pointer">🪟 화면분할</button>
+                                <button onclick="stopWhiteNoise()" class="bg-[#2b0f1c] hover:bg-rose-700 text-[#ff3b5c] hover:text-white font-bold text-xs px-2.5 py-1.5 rounded transition cursor-pointer">🔇 정지</button>
                             </div>
                         </div>
 
-                        <!-- 실시간 오디오 신디사이저 파형 캔버스 + 볼륨/밝기 슬라이더 -->
                         <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center pt-1 border-t border-cyan-900/50">
                             <div class="sm:col-span-5 flex items-center gap-2">
                                 <canvas id="noise-waveform-canvas" width="180" height="32" class="w-full h-8 rounded bg-[#02060d] border border-cyan-500/30"></canvas>
@@ -1019,7 +734,6 @@
                     </div>
                 </div>
 
-                <!-- 우측 컬럼 (5칸): 이투스 스마트 로그인 3대 분기 설정 & 1024x640 정규화 좌표 시뮬레이터 -->
                 <div class="lg:col-span-5 bg-[#051020] border border-cyan-500/50 rounded-lg p-3.5 flex flex-col justify-between space-y-3">
                     <div>
                         <div class="flex items-center justify-between border-b border-cyan-500/30 pb-2">
@@ -1030,7 +744,6 @@
                             </label>
                         </div>
 
-                        <!-- 핵심 업그레이드 3대 분기 조건 선택 (studyingmode.py 독스트링 1, 2, 3번 완벽 반영) -->
                         <div class="mt-2.5 space-y-1.5">
                             <div class="text-[11px] text-cyan-300/90 font-semibold">로그인 상태 &amp; 크롬 자동완성 시뮬레이션 분기 선택:</div>
                             <div class="grid grid-cols-1 gap-1.5 text-[11px]">
@@ -1058,56 +771,27 @@
                             </div>
                         </div>
 
-                        <!-- 1024x640 정규화 화면 좌표 시뮬레이터 맵 -->
                         <div class="mt-3">
                             <div class="flex justify-between items-center text-[10px] font-mono-code text-cyan-300 mb-1">
                                 <span id="sim-screen-title">SCREEN: etoos.com/home/ (1024×640)</span>
                                 <span id="sim-coord-readout" class="text-amber-300">X=0.0000, Y=0.0000 (0, 0)</span>
                             </div>
 
-                            <!-- 가상 브라우저 캔버스 (16:10 비율) -->
                             <div id="etoos-virtual-screen" class="relative w-full h-44 rounded-lg bg-[#030914] border border-cyan-400/50 overflow-hidden select-none">
-                                <!-- 가상 브라우저 상단 탭/주소창 -->
                                 <div class="h-6 bg-[#07162c] border-b border-cyan-500/30 px-2 flex items-center justify-between text-[10px] font-mono-code text-cyan-300">
                                     <span id="virtual-tab-title" class="truncate">[ETOOS] 이투스 통합회원 / 마이룸</span>
                                     <span id="virtual-url-bar" class="text-cyan-400/70 truncate ml-2">https://www.etoos.com/home/</span>
                                 </div>
 
-                                <!-- 타겟 좌표 마커들 (1024x640 정규화 좌표와 동일한 위치) -->
-                                <!-- 1) 상단 로그인 (0.6250, 0.4094) -->
-                                <div id="marker-header-login" style="left: 62.50%; top: 40.94%;" class=" -translate-x-1/2 -translate-y-1/2 absolute px-1.5 py-0.5 rounded bg-cyan-500/20 border border-cyan-400 text-[9px] font-mono-code text-cyan-200">
-                                    로그인(0.625,0.409)
-                                </div>
-                                <!-- 2) 마이룸 (0.7227, 0.4078) -->
-                                <div id="marker-myroom" style="left: 72.27%; top: 40.78%;" class="-translate-x-1/2 -translate-y-1/2 absolute px-1.5 py-0.5 rounded bg-emerald-500/20 border border-emerald-400 text-[9px] font-mono-code text-emerald-200">
-                                    마이룸(0.723,0.408)
-                                </div>
-                                <!-- 3) ID 입력칸 (0.4100, 0.4328) -->
-                                <div id="marker-id-input" style="left: 41.00%; top: 43.28%;" class="-translate-x-1/2 -translate-y-1/2 absolute px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-400/60 text-[9px] font-mono-code text-amber-200">
-                                    ID칸(0.410,0.433)
-                                </div>
-                                <!-- 4) PW 좌측 보정 입력칸 (0.3800, 0.4906) -->
-                                <div id="marker-pw-input" style="left: 38.00%; top: 49.06%;" class="-translate-x-1/2 -translate-y-1/2 absolute px-1.5 py-0.5 rounded bg-amber-500/25 border border-amber-400 text-[9px] font-mono-code text-amber-200">
-                                    PW좌측(0.380,0.491)
-                                </div>
-                                <!-- 5) 미니테스트 팝업 닫기 X (0.4805, 0.5156) -->
-                                <div id="marker-popup-x" style="left: 48.05%; top: 51.56%;" class="-translate-x-1/2 -translate-y-1/2 absolute px-1.5 py-0.5 rounded bg-rose-500/20 border border-rose-400 text-[9px] font-mono-code text-rose-200">
-                                    팝업X(0.481,0.516)
-                                </div>
-                                <!-- 6) 청록색 로그인 제출 버튼 (0.4941, 0.6156) -->
-                                <div id="marker-login-submit" style="left: 49.41%; top: 61.56%;" class="-translate-x-1/2 -translate-y-1/2 absolute px-2 py-0.5 rounded bg-teal-500/30 border border-teal-300 text-[9px] font-mono-code text-teal-100 font-bold">
-                                    청록로그인(0.494,0.616)
-                                </div>
-                                <!-- 7) 수강중 11 강좌 버튼 (0.3076, 0.6922) -->
-                                <div id="marker-studying-cnt" style="left: 30.76%; top: 69.22%;" class="-translate-x-1/2 -translate-y-1/2 absolute px-1.5 py-0.5 rounded bg-sky-500/30 border border-sky-300 text-[9px] font-mono-code text-sky-100 font-bold">
-                                    수강중11(0.308,0.692)
-                                </div>
-                                <!-- 8) 좌측 수강중 강좌 메뉴 (0.1201, 0.5172) -->
-                                <div id="marker-left-menu" style="left: 12.01%; top: 51.72%;" class="-translate-x-1/2 -translate-y-1/2 absolute px-1 py-0.5 rounded bg-purple-500/20 border border-purple-400 text-[8px] font-mono-code text-purple-200">
-                                    좌측메뉴(0.120,0.517)
-                                </div>
+                                <div style="left: 62.50%; top: 40.94%;" class="-translate-x-1/2 -translate-y-1/2 absolute px-1.5 py-0.5 rounded bg-cyan-500/20 border border-cyan-400 text-[9px] font-mono-code text-cyan-200">로그인(0.625,0.409)</div>
+                                <div style="left: 72.27%; top: 40.78%;" class="-translate-x-1/2 -translate-y-1/2 absolute px-1.5 py-0.5 rounded bg-emerald-500/20 border border-emerald-400 text-[9px] font-mono-code text-emerald-200">마이룸(0.723,0.408)</div>
+                                <div style="left: 41.00%; top: 43.28%;" class="-translate-x-1/2 -translate-y-1/2 absolute px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-400/60 text-[9px] font-mono-code text-amber-200">ID칸(0.410,0.433)</div>
+                                <div style="left: 38.00%; top: 49.06%;" class="-translate-x-1/2 -translate-y-1/2 absolute px-1.5 py-0.5 rounded bg-amber-500/25 border border-amber-400 text-[9px] font-mono-code text-amber-200">PW좌측(0.380,0.491)</div>
+                                <div style="left: 48.05%; top: 51.56%;" class="-translate-x-1/2 -translate-y-1/2 absolute px-1.5 py-0.5 rounded bg-rose-500/20 border border-rose-400 text-[9px] font-mono-code text-rose-200">팝업X(0.481,0.516)</div>
+                                <div style="left: 49.41%; top: 61.56%;" class="-translate-x-1/2 -translate-y-1/2 absolute px-2 py-0.5 rounded bg-teal-500/30 border border-teal-300 text-[9px] font-mono-code text-teal-100 font-bold">청록로그인(0.494,0.616)</div>
+                                <div style="left: 30.76%; top: 69.22%;" class="-translate-x-1/2 -translate-y-1/2 absolute px-1.5 py-0.5 rounded bg-sky-500/30 border border-sky-300 text-[9px] font-mono-code text-sky-100 font-bold">수강중11(0.308,0.692)</div>
+                                <div style="left: 12.01%; top: 51.72%;" class="-translate-x-1/2 -translate-y-1/2 absolute px-1 py-0.5 rounded bg-purple-500/20 border border-purple-400 text-[8px] font-mono-code text-purple-200">좌측메뉴(0.120,0.517)</div>
 
-                                <!-- 가상 마우스 커서 포인터 -->
                                 <div id="virtual-cursor" style="left: 50%; top: 50%;" class="absolute z-20 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
                                     <div id="cursor-ring" class="w-5 h-5 rounded-full border-2 border-[#00f2ff] bg-cyan-400/30 shadow-[0_0_12px_#00f2ff]"></div>
                                 </div>
@@ -1115,36 +799,37 @@
                         </div>
                     </div>
 
-                    <!-- 단계별 시간 텀 실행 로그 콘솔 -->
                     <div class="bg-[#02060d] border border-cyan-500/30 rounded p-2.5">
                         <div class="flex justify-between items-center text-[10px] font-mono-code text-cyan-400 mb-1">
                             <span>SEQUENTIAL EXECUTION LOG</span>
-                            <div class="flex items-center gap-2">
-                                <label class="flex items-center gap-1 cursor-pointer text-amber-300">
-                                    <input type="checkbox" id="chk-realtime-delay" class="accent-amber-400">
-                                    <span>실제 시간 텀(3.5s~3.8s) 그대로 대기</span>
-                                </label>
-                            </div>
+                            <label class="flex items-center gap-1 cursor-pointer text-amber-300">
+                                <input type="checkbox" id="chk-realtime-delay" class="accent-amber-400">
+                                <span>실제 시간 텀(3.5s~3.8s) 대기</span>
+                            </label>
                         </div>
                         <div id="etoos-seq-log" class="h-24 overflow-y-auto font-mono-code text-[11px] space-y-1 text-cyan-100/90 pr-1">
                             <div class="text-cyan-400/70">[READY] studyingmode.py 좌표 시퀀스 대기 중...</div>
                         </div>
                     </div>
                 </div>
-
             </div>
         </div>
     </div>
 
     <script>
         // =========================================================================
-        // 🔧 0. 시스템 상수 및 studyingmode.py 핵심 데이터 정의
+        // 🌐 0. Firebase Realtime Database 클라우드 동기화 핵심 상수
         // =========================================================================
+        const FIREBASE_DB_URL = "https://jarvis-70cfd-default-rtdb.firebaseio.com/jarvis_state.json";
+        const CLIENT_SESSION_ID = "client_" + Math.random().toString(36).slice(2, 10);
+        let isApplyingRemoteState = false;
+        let lastHandledCommandTimestamp = 0;
+        let cloudNodeCache = null; // 클라우드에서 받아온 연산 기기 정보
+
         const SYSTEM_PW = "kakaku1221!@#";
         const STORAGE_NODE_KEY = "jarvis_registered_compute_node";
         const STORAGE_SCHED_KEY = "jarvis_schedules_data";
 
-        // studyingmode.py 이투스 / EBSi 계정 및 URL 상수
         const ETOOS_ID = "hera47";
         const ETOOS_PW = "@tnwls8911";
         const ETOOS_HOME_URL = "https://www.etoos.com/home/";
@@ -1153,20 +838,18 @@
         const EBSI_PW = "@tnwls8911";
         const EBSI_LOGIN_URL = "https://www.ebsi.co.kr/ebs/pot/potl/login.ebs?alertYn=N";
 
-        // studyingmode.py 정규화 화면 좌표 (1024x640 전체화면 기준)
         const ETOOS_COORDS = {
-            SAFE_LEFT_MARGIN: { x: 0.0400, y: 0.3500, label: "좌측 안전 여백 (로그인 감지)" },
-            HEADER_LOGIN: { x: 0.6250, y: 0.4094, label: "상단 [로그인] 버튼" },
-            LOGIN_ID_INPUT: { x: 0.4100, y: 0.4328, label: "로그인 창 ID 입력칸" },
-            LOGIN_PW_INPUT: { x: 0.3800, y: 0.4906, label: "PW 입력칸 (추천창 회피 좌측 보정 389, 314)" },
-            LOGIN_SUBMIT: { x: 0.4941, y: 0.6156, label: "청록색 [로그인] 버튼" },
-            MYROOM: { x: 0.7227, y: 0.4078, label: "상단 [마이룸] 버튼" },
-            POPUP_CLOSE_X: { x: 0.4805, y: 0.5156, label: "미니테스트 팝업 [X] 닫기" },
-            STUDYING_COUNT: { x: 0.3076, y: 0.6922, label: "마이룸 [수강중 11] 숫자 버튼" },
-            LEFT_STUDYING_MENU: { x: 0.1201, y: 0.5172, label: "좌측 [수강중 강좌 >] 메뉴" }
+            SAFE_LEFT_MARGIN: { x: 0.0400, y: 0.3500 },
+            HEADER_LOGIN: { x: 0.6250, y: 0.4094 },
+            LOGIN_ID_INPUT: { x: 0.4100, y: 0.4328 },
+            LOGIN_PW_INPUT: { x: 0.3800, y: 0.4906 },
+            LOGIN_SUBMIT: { x: 0.4941, y: 0.6156 },
+            MYROOM: { x: 0.7227, y: 0.4078 },
+            POPUP_CLOSE_X: { x: 0.4805, y: 0.5156 },
+            STUDYING_COUNT: { x: 0.3076, y: 0.6922 },
+            LEFT_STUDYING_MENU: { x: 0.1201, y: 0.5172 }
         };
 
-        // studyingmode.py 각 단계별 시간 텀(초)
         const ETOOS_DELAYS = {
             HOME_INITIAL_LOAD: 3.5,
             AFTER_HEADER_LOGIN: 3.2,
@@ -1177,16 +860,10 @@
             AFTER_STUDYING_CLICK: 2.2
         };
 
-        // studyingmode.py 4대 작업 모드 프리셋 정의 (WORKSPACE_PRESETS)
         const WORKSPACE_PRESETS = {
             study: {
                 title: "📚 공부 모드",
-                kill_processes: [
-                    "steam.exe", "LeagueClient.exe", "League of Legends.exe",
-                    "VALORANT.exe", "RiotClientServices.exe", "Discord.exe"
-                ],
-                launch_urls: [],
-                launch_apps: ["study_sites_chrome"],
+                kill_processes: ["steam.exe", "LeagueClient.exe", "League of Legends.exe", "VALORANT.exe", "RiotClientServices.exe", "Discord.exe"],
                 window_keywords: ["ETOOS", "이투스", "수강중 강좌"],
                 split_layout: "fullscreen",
                 light_state: 1,
@@ -1197,11 +874,7 @@
             },
             coding: {
                 title: "💻 코딩 모드",
-                kill_processes: [
-                    "steam.exe", "LeagueClient.exe", "VALORANT.exe", "RiotClientServices.exe"
-                ],
-                launch_urls: ["https://github.com"],
-                launch_apps: ["code"],
+                kill_processes: ["steam.exe", "LeagueClient.exe", "VALORANT.exe", "RiotClientServices.exe"],
                 window_keywords: ["Visual Studio Code", "Chrome", "GitHub", "PowerShell"],
                 split_layout: "coding_60_40",
                 light_state: 1,
@@ -1213,8 +886,6 @@
             game: {
                 title: "🎮 게임 모드",
                 kill_processes: ["notepad.exe"],
-                launch_urls: [],
-                launch_apps: ["discord", "steam"],
                 window_keywords: ["Steam", "Discord"],
                 split_layout: "side_by_side",
                 light_state: 0,
@@ -1225,11 +896,7 @@
             },
             rest: {
                 title: "☕ 휴식 모드",
-                kill_processes: [
-                    "steam.exe", "LeagueClient.exe", "VALORANT.exe", "RiotClientServices.exe"
-                ],
-                launch_urls: [],
-                launch_apps: [],
+                kill_processes: ["steam.exe", "LeagueClient.exe", "VALORANT.exe", "RiotClientServices.exe"],
                 window_keywords: ["Rest Ambient View"],
                 split_layout: "side_by_side",
                 light_state: 0,
@@ -1250,7 +917,6 @@
         let selectedDateFilter = null;
         let currentSequenceAbortController = null;
 
-        // 기본 샘플 스케쥴 데이터 (현재 날짜: 2026-11-13 기준)
         const defaultSchedules = [
             { id: 1, date: "2026-11-13", time: "16:00", title: "로컬 LLM 모델 추론 테스트" },
             { id: 2, date: "2026-11-13", time: "20:00", title: "이투스 수강중 강좌 집중 학습 (공부 모드)" },
@@ -1260,7 +926,170 @@
         let schedules = JSON.parse(localStorage.getItem(STORAGE_SCHED_KEY)) || defaultSchedules;
 
         // =========================================================================
-        // 🎵 1. 무설치 실시간 집중 백색소음 합성 엔진 (Web Audio API WhiteNoiseSynthesizer)
+        // 🌐 1. Firebase 클라우드 부분 업데이트(PATCH) 및 실시간 수신(GET) 함수
+        // =========================================================================
+        function setCloudBadge(status, text) {
+            const dot = document.getElementById("cloud-sync-dot");
+            const lbl = document.getElementById("cloud-sync-text");
+            if (!dot || !lbl) return;
+            if (status === "ok") {
+                dot.className = "w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]";
+                lbl.innerText = text || "CLOUD DB: SYNCED";
+                lbl.className = "text-emerald-300";
+            } else if (status === "err") {
+                dot.className = "w-2 h-2 rounded-full bg-rose-500 animate-ping";
+                lbl.innerText = text || "CLOUD DB: RULES LOCKED (401)";
+                lbl.className = "text-rose-400 font-bold";
+            } else {
+                dot.className = "w-2 h-2 rounded-full bg-amber-400";
+                lbl.innerText = text || "CLOUD DB: SYNCING...";
+                lbl.className = "text-amber-200";
+            }
+        }
+
+        // 핵심: PUT(전체 덮어쓰기)이 아닌 PATCH(변경된 필드만 병합)를 사용하여
+        // 다른 기기가 접속해도 기존에 등록된 node 정보를 절대 지우지 않도록 보호!
+        async function patchCloudState(partialObj) {
+            if (isApplyingRemoteState) return;
+            const payload = {
+                ...partialObj,
+                updatedBy: CLIENT_SESSION_ID,
+                updatedAt: Date.now()
+            };
+            try {
+                const res = await fetch(FIREBASE_DB_URL, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+                if (res.ok) {
+                    setCloudBadge("ok", "CLOUD DB: SYNCED");
+                } else {
+                    setCloudBadge("err", `CLOUD DB 에러 (${res.status} Rules 확인)`);
+                }
+            } catch (e) {
+                setCloudBadge("err", "CLOUD DB: 연결 실패");
+            }
+        }
+
+        async function pullStateFromCloud() {
+            try {
+                const res = await fetch(FIREBASE_DB_URL + "?t=" + Date.now(), { cache: "no-store" });
+                if (!res.ok) {
+                    setCloudBadge("err", `CLOUD DB 거부 (${res.status} Rules 확인)`);
+                    return;
+                }
+                setCloudBadge("ok", "CLOUD DB: ONLINE");
+                const data = await res.json();
+
+                // 만약 로컬 기기에 이미 등록된 PANEL 정보가 있는데 클라우드에만 아직 없다면 자동 재전송!
+                const localNode = JSON.parse(localStorage.getItem(STORAGE_NODE_KEY));
+                if ((!data || !data.node) && localNode && localNode.registered) {
+                    patchCloudState({ node: localNode });
+                    return;
+                }
+
+                if (!data) {
+                    updateNodeUIEverywhere(null);
+                    return;
+                }
+
+                isApplyingRemoteState = true;
+                try {
+                    // 1) 클라우드에 등록된 연산 기기(node)를 모든 화면에 즉시 반영
+                    if (data.node && data.node.registered) {
+                        cloudNodeCache = data.node;
+                        localStorage.setItem(STORAGE_NODE_KEY, JSON.stringify(data.node));
+                        updateNodeUIEverywhere(data.node);
+                    } else {
+                        updateNodeUIEverywhere(localNode);
+                    }
+
+                    // 2) 스케줄 동기화
+                    if (Array.isArray(data.schedules)) {
+                        schedules = data.schedules;
+                        localStorage.setItem(STORAGE_SCHED_KEY, JSON.stringify(schedules));
+                        renderCalendar();
+                        renderScheduleList();
+                    }
+
+                    // 3) 조명 동기화
+                    if (typeof data.isLightOn === "boolean" && data.isLightOn !== isLightOn) {
+                        toggleLightMode(true);
+                    }
+
+                    // 4) 작업 모드 동기화
+                    if (data.currentActiveMode && data.currentActiveMode !== currentActiveMode && data.currentActiveMode !== "none") {
+                        activateWorkspacePreset(data.currentActiveMode, null, true, true);
+                    } else if (typeof data.isStudyActive === "boolean" && data.isStudyActive !== isStudyActive) {
+                        toggleStudyMode(true);
+                    }
+
+                    // 5) 원격 명령어 동기화
+                    if (data.remoteCmd && data.remoteCmd.ts && data.remoteCmd.ts > lastHandledCommandTimestamp) {
+                        lastHandledCommandTimestamp = data.remoteCmd.ts;
+                        if (data.updatedBy !== CLIENT_SESSION_ID) {
+                            if (data.remoteCmd.type === "utterance" && data.remoteCmd.value) {
+                                handleStudyingmodeCommand(data.remoteCmd.value, true);
+                            } else if (data.remoteCmd.type === "etoos") {
+                                runEtoosSmartLoginOnly(true);
+                            } else if (data.remoteCmd.type === "ebsi") {
+                                runEbsiLoginSequence(true);
+                            }
+                        }
+                    }
+                } finally {
+                    isApplyingRemoteState = false;
+                }
+            } catch (e) {
+                setCloudBadge("err", "CLOUD DB: OFFLINE");
+            }
+        }
+
+        // 모든 화면(초기 로그인 화면 + USER 대시보드 우측 상단)의 기기 표시를 동시에 갱신
+        function updateNodeUIEverywhere(nodeData) {
+            const activeNode = nodeData || cloudNodeCache || JSON.parse(localStorage.getItem(STORAGE_NODE_KEY));
+            const dot = document.getElementById("login-status-dot");
+            const text = document.getElementById("login-status-text");
+            const deviceDisplay = document.getElementById("compute-device-name");
+            const badge = document.getElementById("node-badge");
+            const telemetryLlm = document.getElementById("telemetry-llm");
+
+            if (activeNode && activeNode.registered) {
+                if (dot) dot.className = "w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]";
+                if (text) text.innerText = `등록된 로컬 LLM 연산 기기: ${activeNode.deviceName} (ONLINE)`;
+                if (deviceDisplay) {
+                    deviceDisplay.innerText = activeNode.deviceName;
+                    deviceDisplay.className = "mt-1 text-sm sm:text-base font-bold text-cyan-300 truncate";
+                }
+                if (badge) {
+                    badge.innerText = "ONLINE";
+                    badge.className = "text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 border border-emerald-400/60 text-emerald-300 font-bold";
+                }
+                if (telemetryLlm) {
+                    telemetryLlm.innerText = "CONNECTED";
+                    telemetryLlm.className = "font-mono-code text-emerald-400";
+                }
+            } else {
+                if (dot) dot.className = "w-2 h-2 rounded-full bg-amber-400";
+                if (text) text.innerText = "현재 등록된 로컬 LLM 연산 기기: 없음 (PANEL에서 등록 가능)";
+                if (deviceDisplay) {
+                    deviceDisplay.innerText = "미등록 (PANEL 접속 필요)";
+                    deviceDisplay.className = "mt-1 text-sm sm:text-base font-bold text-amber-300 truncate";
+                }
+                if (badge) {
+                    badge.innerText = "UNREGISTERED";
+                    badge.className = "text-[10px] px-2 py-0.5 rounded bg-amber-500/20 border border-amber-400/60 text-amber-300 font-bold";
+                }
+                if (telemetryLlm) {
+                    telemetryLlm.innerText = "NO NODE";
+                    telemetryLlm.className = "font-mono-code text-amber-400";
+                }
+            }
+        }
+
+        // =========================================================================
+        // 🎵 2. 백색소음 합성 엔진 (WebWhiteNoiseSynthesizer)
         // =========================================================================
         class WebWhiteNoiseSynthesizer {
             constructor() {
@@ -1273,50 +1102,37 @@
                 this.activeNodes = [];
                 this.animFrameId = null;
             }
-
             _initContext() {
                 if (!this.ctx) {
                     const AudioCtx = window.AudioContext || window.webkitAudioContext;
                     this.ctx = new AudioCtx();
                 }
-                if (this.ctx.state === "suspended") {
-                    this.ctx.resume();
-                }
+                if (this.ctx.state === "suspended") this.ctx.resume();
             }
-
             start(profile = "brown", volume = 0.32) {
                 this.stop();
-                if (["off", "none", "꺼", "중지"].includes(profile)) {
-                    return "🔇 정지";
-                }
-
+                if (["off", "none", "꺼", "중지"].includes(profile)) return "🔇 정지";
                 this._initContext();
                 this.currentProfile = profile;
                 this.volume = Math.max(0.05, Math.min(1.0, parseFloat(volume)));
 
                 const sr = this.ctx.sampleRate;
-                const durationSec = 8;
-                const nSamples = sr * durationSec;
+                const nSamples = sr * 6;
                 const buffer = this.ctx.createBuffer(2, nSamples, sr);
                 const left = buffer.getChannelData(0);
                 const right = buffer.getChannelData(1);
 
-                // studyingmode.py의 IIR 저역통과 필터 및 빗소리/바이노럴 합성 수식 그대로 구현
                 let lpL1 = 0, lpL2 = 0, lpR1 = 0, lpR2 = 0;
                 for (let i = 0; i < nSamples; i++) {
                     const wl = Math.random() * 2 - 1;
                     const wr = Math.random() * 2 - 1;
                     if (profile === "rain") {
-                        // 빗소리: 핑크/브라운 중간 대역 + 주기적 엔벨로프 변조
                         lpL1 = 0.88 * lpL1 + 0.12 * wl;
                         lpR1 = 0.88 * lpR1 + 0.12 * wr;
                         const theta = (2 * Math.PI * i) / nSamples;
-                        const envL = 0.90 + 0.08 * Math.sin(2 * theta) + 0.04 * Math.cos(5 * theta);
-                        const envR = 0.90 + 0.08 * Math.sin(2 * theta + 0.7) + 0.04 * Math.cos(5 * theta - 0.5);
-                        left[i] = lpL1 * envL * 0.55;
-                        right[i] = lpR1 * envR * 0.55;
+                        left[i] = lpL1 * (0.90 + 0.08 * Math.sin(2 * theta)) * 0.55;
+                        right[i] = lpR1 * (0.90 + 0.08 * Math.sin(2 * theta + 0.7)) * 0.55;
                     } else {
-                        // 브라운 노이즈 및 바이노럴 배경음 (2단 저역통과 필터)
                         lpL1 = 0.965 * lpL1 + 0.035 * wl;
                         lpL2 = 0.920 * lpL2 + 0.080 * lpL1;
                         lpR1 = 0.965 * lpR1 + 0.035 * wr;
@@ -1332,9 +1148,7 @@
                 noiseSource.loop = true;
 
                 this.masterGain = this.ctx.createGain();
-                this.masterGain.gain.setValueAtTime(0.01, this.ctx.currentTime);
-                this.masterGain.gain.linearRampToValueAtTime(this.volume, this.ctx.currentTime + 0.22);
-
+                this.masterGain.gain.setValueAtTime(this.volume, this.ctx.currentTime);
                 this.analyser = this.ctx.createAnalyser();
                 this.analyser.fftSize = 128;
 
@@ -1342,124 +1156,78 @@
                 noiseSource.start(0);
                 this.activeNodes.push(noiseSource);
 
-                // 바이노럴 비트일 경우 좌측 200Hz, 우측 214Hz 정현파 합성 (14Hz 베타파 집중 유도)
                 if (profile === "binaural") {
                     const merger = this.ctx.createChannelMerger(2);
                     const oscL = this.ctx.createOscillator();
                     const oscR = this.ctx.createOscillator();
-                    const oscGainL = this.ctx.createGain();
-                    const oscGainR = this.ctx.createGain();
-
-                    oscL.type = "sine";
+                    const gL = this.ctx.createGain();
+                    const gR = this.ctx.createGain();
                     oscL.frequency.value = 200.0;
-                    oscR.type = "sine";
                     oscR.frequency.value = 214.0;
-
-                    oscGainL.gain.value = 0.14;
-                    oscGainR.gain.value = 0.14;
-
-                    oscL.connect(oscGainL);
-                    oscR.connect(oscGainR);
-                    oscGainL.connect(merger, 0, 0);
-                    oscGainR.connect(merger, 0, 1);
+                    gL.gain.value = 0.14;
+                    gR.gain.value = 0.14;
+                    oscL.connect(gL); oscR.connect(gR);
+                    gL.connect(merger, 0, 0); gR.connect(merger, 0, 1);
                     merger.connect(this.masterGain);
-
-                    oscL.start(0);
-                    oscR.start(0);
+                    oscL.start(0); oscR.start(0);
                     this.activeNodes.push(oscL, oscR);
                 }
 
                 this.masterGain.connect(this.analyser);
                 this.analyser.connect(this.ctx.destination);
                 this.playing = true;
-
                 this._startVisualizer();
-                const profileKr = {
-                    brown: "브라운노이즈",
-                    rain: "빗소리",
-                    binaural: "바이노럴(200/214Hz)"
-                }[profile] || "백색소음";
 
+                const profileKr = { brown: "브라운노이즈", rain: "빗소리", binaural: "바이노럴(200/214Hz)" }[profile] || "백색소음";
                 updateNoiseUI(true, `🎧 ${profileKr}`, this.volume);
                 return `🎧 ${profileKr}`;
             }
-
             setVolume(val0to1) {
                 this.volume = Math.max(0.05, Math.min(1.0, parseFloat(val0to1)));
-                if (this.masterGain && this.ctx) {
-                    this.masterGain.gain.setValueAtTime(this.volume, this.ctx.currentTime);
-                }
+                if (this.masterGain && this.ctx) this.masterGain.gain.setValueAtTime(this.volume, this.ctx.currentTime);
             }
-
             stop() {
                 this.playing = false;
                 this.currentProfile = "off";
-                this.activeNodes.forEach(node => {
-                    try { node.stop(); } catch (e) {}
-                    try { node.disconnect(); } catch (e) {}
-                });
+                this.activeNodes.forEach(n => { try { n.stop(); n.disconnect(); } catch (e) {} });
                 this.activeNodes = [];
-                if (this.masterGain) {
-                    try { this.masterGain.disconnect(); } catch (e) {}
-                    this.masterGain = null;
-                }
-                if (this.animFrameId) {
-                    cancelAnimationFrame(this.animFrameId);
-                    this.animFrameId = null;
-                }
+                if (this.masterGain) { try { this.masterGain.disconnect(); } catch (e) {} this.masterGain = null; }
+                if (this.animFrameId) { cancelAnimationFrame(this.animFrameId); this.animFrameId = null; }
                 this._clearVisualizer();
                 updateNoiseUI(false, "🔇 정지", this.volume);
                 return "🔇 정지";
             }
-
             _startVisualizer() {
                 const canvas = document.getElementById("noise-waveform-canvas");
                 if (!canvas || !this.analyser) return;
                 const c = canvas.getContext("2d");
                 const dataArray = new Uint8Array(this.analyser.frequencyBinCount);
-
                 const draw = () => {
                     if (!this.playing || !this.analyser) return;
                     this.animFrameId = requestAnimationFrame(draw);
                     this.analyser.getByteTimeDomainData(dataArray);
-
                     c.fillStyle = "#02060d";
                     c.fillRect(0, 0, canvas.width, canvas.height);
-
                     c.lineWidth = 1.6;
-                    c.strokeStyle = this.currentProfile === "rain"
-                        ? "#00ffaa"
-                        : this.currentProfile === "binaural"
-                        ? "#ffb84d"
-                        : "#00f2ff";
+                    c.strokeStyle = this.currentProfile === "rain" ? "#00ffaa" : this.currentProfile === "binaural" ? "#ffb84d" : "#00f2ff";
                     c.beginPath();
-
                     const sliceWidth = canvas.width / dataArray.length;
                     let x = 0;
                     for (let i = 0; i < dataArray.length; i++) {
-                        const v = dataArray[i] / 128.0;
-                        const y = (v * canvas.height) / 2;
-                        if (i === 0) c.moveTo(x, y);
-                        else c.lineTo(x, y);
+                        const y = ((dataArray[i] / 128.0) * canvas.height) / 2;
+                        if (i === 0) c.moveTo(x, y); else c.lineTo(x, y);
                         x += sliceWidth;
                     }
-                    c.lineTo(canvas.width, canvas.height / 2);
                     c.stroke();
                 };
                 draw();
             }
-
             _clearVisualizer() {
                 const canvas = document.getElementById("noise-waveform-canvas");
                 if (!canvas) return;
                 const c = canvas.getContext("2d");
                 c.fillStyle = "#02060d";
                 c.fillRect(0, 0, canvas.width, canvas.height);
-                c.strokeStyle = "rgba(0, 242, 255, 0.25)";
-                c.beginPath();
-                c.moveTo(0, canvas.height / 2);
-                c.lineTo(canvas.width, canvas.height / 2);
-                c.stroke();
             }
         }
 
@@ -1470,98 +1238,53 @@
             setPopupFeedback(msg, "#00ffaa");
             setJarvisMessage(`${msg} 재생을 시작합니다.`);
         }
-
         function stopWhiteNoise() {
             const msg = ambientEngine.stop();
             setPopupFeedback(msg, "#ff3b5c");
             setJarvisMessage("백색소음 재생을 정지했습니다.");
         }
-
         function changeWhiteNoiseVolume(pct) {
-            const v = parseInt(pct, 10) / 100;
             document.getElementById("noise-vol-label").innerText = `${pct}%`;
-            ambientEngine.setVolume(v);
+            ambientEngine.setVolume(parseInt(pct, 10) / 100);
         }
-
         function updateNoiseUI(isPlaying, labelText, vol) {
             const dot = document.getElementById("mini-noise-dot");
             const lbl = document.getElementById("mini-noise-label");
-            const slider = document.getElementById("noise-volume-slider");
-            const volLabel = document.getElementById("noise-vol-label");
-
             if (dot && lbl) {
-                dot.className = isPlaying
-                    ? "w-2 h-2 rounded-full bg-emerald-400 animate-ping"
-                    : "w-2 h-2 rounded-full bg-slate-500";
+                dot.className = isPlaying ? "w-2 h-2 rounded-full bg-emerald-400 animate-ping" : "w-2 h-2 rounded-full bg-slate-500";
                 lbl.innerText = isPlaying ? labelText : "🔇 백색소음: 정지";
-            }
-            if (slider && volLabel) {
-                const pct = Math.round(vol * 100);
-                slider.value = pct;
-                volLabel.innerText = `${pct}%`;
             }
         }
 
         // =========================================================================
-        // 🪟 2. 화면 분할 (arrange_windows_split) & 모니터 밝기 (set_monitor_brightness)
+        // 🪟 3. 화면 분할 & 밝기 & 이투스 시퀀스
         // =========================================================================
         function arrangeWindowsSplit(layout = "side_by_side", keywords = []) {
             const preview = document.getElementById("mini-split-preview");
             const telSplit = document.getElementById("telemetry-split");
             const badge = document.getElementById("split-layout-badge");
-            let resultLabel = "🪟 창 정렬";
-
             if (layout === "fullscreen") {
-                resultLabel = "🪟 전체화면";
-                telSplit.innerText = "FULLSCREEN (SW_MAXIMIZE)";
-                badge.innerText = "MAXIMIZED";
-                preview.innerHTML = `
-                    <div class="flex-1 rounded bg-cyan-500/30 border border-cyan-300 flex items-center justify-center text-[10px] text-white font-bold font-mono-code">
-                        ${keywords[0] || "ETOOS 수강중 강좌 (전체화면)"}
-                    </div>
-                `;
+                telSplit.innerText = "FULLSCREEN"; badge.innerText = "MAXIMIZED";
+                preview.innerHTML = `<div class="flex-1 rounded bg-cyan-500/30 border border-cyan-300 flex items-center justify-center text-[10px] text-white font-bold font-mono-code">${keywords[0] || "ETOOS 전체화면"}</div>`;
+                return "🪟 전체화면";
             } else if (layout === "coding_60_40") {
-                resultLabel = "🪟 60:40 분할";
-                telSplit.innerText = "SPLIT 60:40";
-                badge.innerText = "60% : 40%";
-                preview.innerHTML = `
-                    <div style="width: 60%;" class="rounded bg-emerald-500/25 border border-emerald-400 flex items-center justify-center text-[10px] text-emerald-200 font-bold font-mono-code">
-                        VSCode (60%)
-                    </div>
-                    <div style="width: 40%;" class="rounded bg-cyan-500/20 border border-cyan-400 flex items-center justify-center text-[10px] text-cyan-200 font-mono-code">
-                        GitHub (40%)
-                    </div>
-                `;
+                telSplit.innerText = "SPLIT 60:40"; badge.innerText = "60% : 40%";
+                preview.innerHTML = `<div style="width:60%" class="rounded bg-emerald-500/25 border border-emerald-400 flex items-center justify-center text-[10px] text-emerald-200 font-bold font-mono-code">VSCode (60%)</div><div style="width:40%" class="rounded bg-cyan-500/20 border border-cyan-400 flex items-center justify-center text-[10px] text-cyan-200 font-mono-code">GitHub (40%)</div>`;
+                return "🪟 60:40 분할";
             } else {
-                resultLabel = "🪟 50:50 분할";
-                telSplit.innerText = "SPLIT 50:50";
-                badge.innerText = "50% : 50%";
-                const leftTitle = keywords[0] || "Window L (50%)";
-                const rightTitle = keywords[1] || "Window R (50%)";
-                preview.innerHTML = `
-                    <div class="w-1/2 rounded bg-amber-500/20 border border-amber-400 flex items-center justify-center text-[10px] text-amber-200 font-mono-code">
-                        ${leftTitle}
-                    </div>
-                    <div class="w-1/2 rounded bg-purple-500/20 border border-purple-400 flex items-center justify-center text-[10px] text-purple-200 font-mono-code">
-                        ${rightTitle}
-                    </div>
-                `;
+                telSplit.innerText = "SPLIT 50:50"; badge.innerText = "50% : 50%";
+                preview.innerHTML = `<div class="w-1/2 rounded bg-amber-500/20 border border-amber-400 flex items-center justify-center text-[10px] text-amber-200 font-mono-code">${keywords[0] || "Left 50%"}</div><div class="w-1/2 rounded bg-purple-500/20 border border-purple-400 flex items-center justify-center text-[10px] text-purple-200 font-mono-code">${keywords[1] || "Right 50%"}</div>`;
+                return "🪟 50:50 분할";
             }
-
-            setPopupFeedback(resultLabel, "#00f2ff");
-            return resultLabel;
         }
 
         function setMonitorBrightness(levelPct) {
             const lv = Math.max(15, Math.min(100, parseInt(levelPct, 10)));
             const overlay = document.getElementById("brightness-overlay");
+            if (overlay) overlay.style.opacity = (((100 - lv) / 100) * 0.68).toFixed(2);
             const slider = document.getElementById("brightness-slider");
             const label = document.getElementById("brightness-val-label");
             const telBright = document.getElementById("telemetry-brightness");
-
-            // 100%일 때 불투명도 0, 15%일 때 불투명도 0.65로 시각적 조도 표현
-            const darkness = ((100 - lv) / 100) * 0.68;
-            if (overlay) overlay.style.opacity = darkness.toFixed(2);
             if (slider) slider.value = lv;
             if (label) label.innerText = `${lv}%`;
             if (telBright) telBright.innerText = `${lv}%`;
@@ -1569,333 +1292,182 @@
 
         function controlLight(stateInt) {
             const wantOn = parseInt(stateInt, 10) === 1;
-            if (isLightOn !== wantOn) {
-                toggleLightMode(true);
-            }
+            if (isLightOn !== wantOn) toggleLightMode(true);
         }
 
-        // =========================================================================
-        // 🎓 3. 이투스 스마트 로그인 분기 & 정규화 좌표 시퀀스 엔진
-        // =========================================================================
         function appendEtoosLog(text, colorClass = "text-cyan-200") {
             const box = document.getElementById("etoos-seq-log");
             if (!box) return;
             const line = document.createElement("div");
-            const now = new Date().toTimeString().split(" ")[0];
-            line.className = `${colorClass}`;
-            line.innerText = `[${now}] ${text}`;
+            line.className = colorClass;
+            line.innerText = `[${new Date().toTimeString().split(" ")[0]}] ${text}`;
             box.appendChild(line);
             box.scrollTop = box.scrollHeight;
         }
 
         function moveVirtualCursor(coordObj) {
             const cursor = document.getElementById("virtual-cursor");
-            const ring = document.getElementById("cursor-ring");
             const readout = document.getElementById("sim-coord-readout");
             if (!cursor) return;
-
-            const pctX = (coordObj.x * 100).toFixed(2);
-            const pctY = (coordObj.y * 100).toFixed(2);
-            const px = Math.round(1024 * coordObj.x);
-            const py = Math.round(640 * coordObj.y);
-
-            cursor.style.left = `${pctX}%`;
-            cursor.style.top = `${pctY}%`;
-
-            if (readout) {
-                readout.innerText = `X=${coordObj.x.toFixed(4)}, Y=${coordObj.y.toFixed(4)} (${px}, ${py})`;
-            }
-
-            if (ring) {
-                ring.classList.remove("click-ripple");
-                void ring.offsetWidth;
-                ring.classList.add("click-ripple");
-            }
+            cursor.style.left = `${(coordObj.x * 100).toFixed(2)}%`;
+            cursor.style.top = `${(coordObj.y * 100).toFixed(2)}%`;
+            if (readout) readout.innerText = `X=${coordObj.x.toFixed(4)}, Y=${coordObj.y.toFixed(4)} (${Math.round(1024 * coordObj.x)}, ${Math.round(640 * coordObj.y)})`;
         }
 
         function sleepAbortable(sec, abortSignal) {
             const useRealtime = document.getElementById("chk-realtime-delay")?.checked;
-            // 기본 시뮬레이션에서는 체감 속도를 위해 0.45배속으로 빠르게 보여주고, 체크 시 실제 초(3.5s 등) 그대로 대기
-            const ms = (useRealtime ? sec : Math.max(0.45, sec * 0.38)) * 1000;
+            const ms = (useRealtime ? sec : Math.max(0.4, sec * 0.35)) * 1000;
             return new Promise((resolve, reject) => {
                 const timer = setTimeout(resolve, ms);
-                if (abortSignal) {
-                    abortSignal.addEventListener("abort", () => {
-                        clearTimeout(timer);
-                        reject(new Error("ABORTED"));
-                    }, { once: true });
-                }
+                if (abortSignal) abortSignal.addEventListener("abort", () => { clearTimeout(timer); reject(new Error("ABORTED")); }, { once: true });
             });
         }
 
         async function openAndLoginStudySitesInChrome(sites = ["etoos"]) {
-            if (currentSequenceAbortController) {
-                currentSequenceAbortController.abort();
-            }
+            if (currentSequenceAbortController) currentSequenceAbortController.abort();
             currentSequenceAbortController = new AbortController();
             const signal = currentSequenceAbortController.signal;
-
             const logBox = document.getElementById("etoos-seq-log");
             if (logBox) logBox.innerHTML = "";
 
             const openRealTab = document.getElementById("chk-open-real-tab")?.checked;
-            const branchRadio = document.querySelector("input[name='etoos-branch']:checked");
-            const branch = branchRadio ? branchRadio.value : "cred_filled";
-
-            const tabTitleEl = document.getElementById("virtual-tab-title");
-            const urlBarEl = document.getElementById("virtual-url-bar");
+            const branch = document.querySelector("input[name='etoos-branch']:checked")?.value || "cred_filled";
 
             try {
                 if (sites.includes("etoos")) {
-                    // Step 1: 이투스 공식 홈페이지로 먼저 진입 (직접 로그인 URL 진입 금지)
-                    setPopupFeedback("⏳ Step 1: 이투스 홈페이지(etoos.com/home/) 접속 및 전체화면 고정...", "#00f2ff");
-                    appendEtoosLog(`Step 1: ${ETOOS_HOME_URL} 접속 (SW_MAXIMIZE 고정, ${ETOOS_DELAYS.HOME_INITIAL_LOAD}s 대기)`, "text-cyan-300");
-                    if (tabTitleEl) tabTitleEl.innerText = "이투스 - 대한민국 대표 인강";
-                    if (urlBarEl) urlBarEl.innerText = ETOOS_HOME_URL;
-
-                    if (openRealTab) {
-                        window.open(ETOOS_HOME_URL, "_blank", "noopener");
-                    }
-
+                    setPopupFeedback("⏳ Step 1: 이투스 홈페이지 접속 및 전체화면 고정...", "#00f2ff");
+                    appendEtoosLog(`Step 1: ${ETOOS_HOME_URL} 접속 (${ETOOS_DELAYS.HOME_INITIAL_LOAD}s 대기)`, "text-cyan-300");
+                    if (openRealTab) window.open(ETOOS_HOME_URL, "_blank", "noopener");
                     await sleepAbortable(ETOOS_DELAYS.HOME_INITIAL_LOAD, signal);
 
-                    // Step 2: 로그인 상태 감지 (_is_etoos_homepage_logged_in_standalone)
                     moveVirtualCursor(ETOOS_COORDS.SAFE_LEFT_MARGIN);
-                    appendEtoosLog(`로그인 상태 감지: 좌측 여백(0.0400, 0.3500) 클릭 & 타이틀 마커 확인`, "text-cyan-200");
-                    await sleepAbortable(0.6, signal);
+                    await sleepAbortable(0.5, signal);
 
                     if (branch === "logged_in") {
-                        // [분기 1] 이미 로그인이 되어 있는 경우
-                        if (tabTitleEl) tabTitleEl.innerText = "[ETOOS_LOGGED_IN] 이투스 홈";
-                        appendEtoosLog(`✅ [ETOOS_LOGGED_IN] 감지됨! 상단 [로그인] 버튼을 누르지 않고 곧바로 마이룸으로 직행합니다.`, "text-emerald-300 font-bold");
+                        appendEtoosLog(`✅ [ETOOS_LOGGED_IN] 감지! 상단 로그인 생략 후 마이룸으로 직행`, "text-emerald-300 font-bold");
                     } else {
-                        // [분기 2 & 3] 비로그인 상태일 때만 상단 [로그인] 버튼 클릭
-                        if (tabTitleEl) tabTitleEl.innerText = "[ETOOS_LOGGED_OUT] 이투스 홈";
                         moveVirtualCursor(ETOOS_COORDS.HEADER_LOGIN);
-                        setPopupFeedback(`🖱️ Step 2: 비로그인 감지 ➔ 상단 [로그인] 버튼(0.6250, 0.4094) 클릭`, "#ffb84d");
-                        appendEtoosLog(`Step 2: 상단 [로그인] 클릭 (X=0.6250, Y=0.4094 / 픽셀 640, 262) ➔ ${ETOOS_DELAYS.AFTER_HEADER_LOGIN}s 대기`, "text-amber-300");
+                        appendEtoosLog(`Step 2: 상단 [로그인] 클릭 (0.6250, 0.4094)`, "text-amber-300");
                         await sleepAbortable(ETOOS_DELAYS.AFTER_HEADER_LOGIN, signal);
 
-                        // 로그인 창 진입
-                        if (urlBarEl) urlBarEl.innerText = "https://member.etoos.com/login";
-
                         if (branch === "cred_filled") {
-                            // [분기 2] 크롬 자동완성 등으로 ID/PW가 이미 적혀 있는 경우
-                            if (tabTitleEl) tabTitleEl.innerText = "[ETOOS_CRED_FILLED] 통합회원 로그인";
-                            appendEtoosLog(`✅ [ETOOS_CRED_FILLED] 감지됨 (연푸른 배경 RGB/글자 픽셀 확인)!`, "text-cyan-300 font-bold");
-                            appendEtoosLog(`입력칸을 건드리지 않고(추천 팝업 방지) ${ETOOS_DELAYS.BEFORE_LOGIN_SUBMIT}s 대기 후 바로 [로그인] 클릭!`, "text-cyan-200");
+                            appendEtoosLog(`✅ [ETOOS_CRED_FILLED] 자동완성 감지! 추천창 방지 위해 바로 로그인 클릭`, "text-cyan-300 font-bold");
                             await sleepAbortable(ETOOS_DELAYS.BEFORE_LOGIN_SUBMIT, signal);
                         } else {
-                            // [분기 3] ID/PW가 안 적혀 있을 때만 입력 + 추천 로그인창 회피 좌측 클릭 보정
-                            if (tabTitleEl) tabTitleEl.innerText = "[ETOOS_CRED_EMPTY] 통합회원 로그인";
-                            appendEtoosLog(`⚠️ [ETOOS_CRED_EMPTY] 미작성 감지 ➔ ID/PW 클립보드 자동 입력 수행`, "text-amber-300");
-
                             moveVirtualCursor(ETOOS_COORDS.LOGIN_ID_INPUT);
-                            appendEtoosLog(`ID 입력칸(X=0.4100, Y=0.4328) 클릭 후 '${ETOOS_ID}' 붙여넣기(Ctrl+V)`, "text-white");
-                            await sleepAbortable(0.8, signal);
-
-                            appendEtoosLog(`⌨️ [ESC] 키 입력 ➔ 크롬 '저장된 추천 로그인창' 자동완성 팝업 즉시 닫기!`, "text-rose-300 font-bold");
-                            await sleepAbortable(0.5, signal);
-
+                            appendEtoosLog(`ID(hera47) 입력 ➔ ESC로 추천 로그인창 닫기`, "text-white");
+                            await sleepAbortable(0.7, signal);
                             moveVirtualCursor(ETOOS_COORDS.LOGIN_PW_INPUT);
-                            appendEtoosLog(`🎯 추천창 회피 좌측 보정 PW칸(X=0.3800, Y=0.4906 / 픽셀 389, 314) 클릭 후 PW 입력!`, "text-emerald-300 font-bold");
-                            await sleepAbortable(0.9, signal);
+                            appendEtoosLog(`🎯 좌측 보정 PW칸(0.3800, 0.4906 / 389, 314) 클릭 후 PW 입력`, "text-emerald-300 font-bold");
+                            await sleepAbortable(0.7, signal);
                         }
-
-                        // Step 3-4: 청록색(초록색) 로그인 제출 버튼 클릭
                         moveVirtualCursor(ETOOS_COORDS.LOGIN_SUBMIT);
-                        setPopupFeedback(`🖱️ Step 3: 청록색 [로그인] 버튼(0.4941, 0.6156) 클릭 ➔ 홈 복귀 대기`, "#00ffaa");
-                        appendEtoosLog(`Step 3: 청록색 [로그인] 버튼 클릭 (X=0.4941, Y=0.6156 / 픽셀 506, 394) ➔ ${ETOOS_DELAYS.AFTER_LOGIN_SUBMIT}s 대기`, "text-emerald-300");
+                        appendEtoosLog(`Step 3: 청록색 [로그인] 버튼(0.4941, 0.6156) 클릭`, "text-emerald-300");
                         await sleepAbortable(ETOOS_DELAYS.AFTER_LOGIN_SUBMIT, signal);
                     }
 
-                    // Step 4: 로그인 완료된 홈에서 상단 [마이룸] 클릭 (0.7227, 0.4078)
-                    if (urlBarEl) urlBarEl.innerText = ETOOS_HOME_URL;
-                    if (tabTitleEl) tabTitleEl.innerText = "[ETOOS_LOGGED_IN] 이투스 홈";
                     moveVirtualCursor(ETOOS_COORDS.MYROOM);
-                    setPopupFeedback(`🖱️ Step 4: 상단 [마이룸] (0.7227, 0.4078) 클릭 ➔ 팝업 로딩 대기`, "#00f2ff");
-                    appendEtoosLog(`Step 4: 상단 [마이룸] 클릭 (X=0.7227, Y=0.4078 / 픽셀 740, 261) ➔ ${ETOOS_DELAYS.AFTER_MYROOM_CLICK}s 대기`, "text-cyan-300");
+                    appendEtoosLog(`Step 4: 상단 [마이룸] (0.7227, 0.4078) 클릭`, "text-cyan-300");
                     await sleepAbortable(ETOOS_DELAYS.AFTER_MYROOM_CLICK, signal);
 
-                    // Step 5: 마이룸 진입 시 중앙 미니테스트 팝업 우측 상단 [X] 닫기 클릭 (0.4805, 0.5156)
-                    if (urlBarEl) urlBarEl.innerText = ETOOS_MYROOM_URL;
-                    if (tabTitleEl) tabTitleEl.innerText = "마이룸 - 이투스";
                     moveVirtualCursor(ETOOS_COORDS.POPUP_CLOSE_X);
-                    setPopupFeedback(`🖱️ Step 5: 미니테스트 팝업 닫기 [X] (0.4805, 0.5156) 클릭`, "#ffb84d");
-                    appendEtoosLog(`Step 5: 미니테스트 팝업 [X] 닫기 클릭 (X=0.4805, Y=0.5156 / 픽셀 492, 330) ➔ ${ETOOS_DELAYS.AFTER_POPUP_CLOSE}s 대기`, "text-amber-300");
+                    appendEtoosLog(`Step 5: 미니테스트 팝업 닫기 [X] (0.4805, 0.5156) 클릭`, "text-amber-300");
                     await sleepAbortable(ETOOS_DELAYS.AFTER_POPUP_CLOSE, signal);
 
-                    // Step 6: 마이룸 수강 현황의 [수강중 11] 숫자 버튼 클릭 (0.3076, 0.6922) 및 좌측 메뉴(0.1201, 0.5172) 보조 클릭
                     moveVirtualCursor(ETOOS_COORDS.STUDYING_COUNT);
-                    setPopupFeedback(`🖱️ Step 6: [수강중 11] 강좌 버튼(0.3076, 0.6922) 클릭`, "#00ffaa");
-                    appendEtoosLog(`Step 6: [수강중 11] 숫자 버튼 클릭 (X=0.3076, Y=0.6922 / 픽셀 315, 443) ➔ ${ETOOS_DELAYS.AFTER_STUDYING_CLICK}s 대기`, "text-emerald-300");
-                    await sleepAbortable(ETOOS_DELAYS.AFTER_STUDYING_CLICK, signal);
-
-                    moveVirtualCursor(ETOOS_COORDS.LEFT_STUDYING_MENU);
-                    appendEtoosLog(`보조 확인: 좌측 [수강중 강좌 >] 메뉴 (X=0.1201, Y=0.5172 / 픽셀 123, 331) 클릭 완료!`, "text-purple-300");
+                    appendEtoosLog(`Step 6: [수강중 11] 강좌(0.3076, 0.6922) 클릭 완료!`, "text-emerald-300 font-bold");
                 }
-
                 if (sites.includes("ebsi")) {
-                    appendEtoosLog(`📗 EBSi 로그인 페이지(${EBSI_LOGIN_URL}) 접속 ➔ ID(${EBSI_ID}) 자동 입력 및 fnLogin() 실행 완료`, "text-emerald-300");
-                    if (openRealTab) {
-                        window.open(EBSI_LOGIN_URL, "_blank", "noopener");
-                    }
+                    appendEtoosLog(`📗 EBSi(${EBSI_ID}) 자동 로그인 완료`, "text-emerald-300");
+                    if (openRealTab) window.open(EBSI_LOGIN_URL, "_blank", "noopener");
                 }
-
-                const finalMsg = "🎓 이투스 로그인 및 수강중 강좌 진입 완료";
-                setPopupFeedback(finalMsg, "#00f2ff");
-                setJarvisMessage(finalMsg);
-                return finalMsg;
-            } catch (err) {
-                if (err.message === "ABORTED") {
-                    appendEtoosLog(`⏹️ 이전 시퀀스가 새 명령으로 교체되었습니다.`, "text-rose-400");
-                }
-                return "시퀀스 전환됨";
-            }
+                setPopupFeedback("🎓 이투스 로그인 및 수강중 강좌 진입 완료", "#00f2ff");
+            } catch (e) {}
         }
 
-        function runEtoosSmartLoginOnly() {
+        function runEtoosSmartLoginOnly(fromRemote = false) {
             openStudyingModeWindow();
             openAndLoginStudySitesInChrome(["etoos"]);
+            if (!fromRemote) patchCloudState({ remoteCmd: { type: "etoos", ts: Date.now() } });
         }
 
-        function runEbsiLoginSequence() {
+        function runEbsiLoginSequence(fromRemote = false) {
             openStudyingModeWindow();
             openAndLoginStudySitesInChrome(["ebsi"]);
+            if (!fromRemote) patchCloudState({ remoteCmd: { type: "ebsi", ts: Date.now() } });
         }
 
-        // =========================================================================
-        // ⚡ 4. 4대 작업 모드 프리셋 활성화 엔진 (activate_workspace_preset)
-        // =========================================================================
-        function activateWorkspacePreset(mode = "study", customNoise = null, enableWindowSplit = true) {
+        function activateWorkspacePreset(mode = "study", customNoise = null, enableWindowSplit = true, fromRemote = false) {
             let mKey = (mode || "study").trim().toLowerCase();
-            if (["공부", "학습", "강의", "시험", "study"].some(k => mKey.includes(k))) mKey = "study";
-            else if (["코딩", "개발", "프로그래밍", "coding", "dev"].some(k => mKey.includes(k))) mKey = "coding";
-            else if (["게임", "플레이", "롤", "발로란트", "game"].some(k => mKey.includes(k))) mKey = "game";
-            else if (["휴식", "쉬자", "힐링", "수면", "rest", "relax"].some(k => mKey.includes(k))) mKey = "rest";
+            if (["공부", "학습", "study"].some(k => mKey.includes(k))) mKey = "study";
+            else if (["코딩", "개발", "coding"].some(k => mKey.includes(k))) mKey = "coding";
+            else if (["게임", "롤", "game"].some(k => mKey.includes(k))) mKey = "game";
+            else if (["휴식", "힐링", "rest"].some(k => mKey.includes(k))) mKey = "rest";
             else mKey = "study";
 
             const preset = WORKSPACE_PRESETS[mKey];
             currentActiveMode = mKey;
 
-            // 1) 방해 프로세스 종료 시뮬레이션 (_kill_process_list)
-            const killedCount = preset.kill_processes.length;
             const telKilled = document.getElementById("telemetry-killed");
-            if (telKilled) {
-                telKilled.innerText = `${killedCount}건 (${preset.kill_processes.slice(0, 2).join(", ")}${killedCount > 2 ? " 외" : ""})`;
-            }
+            if (telKilled) telKilled.innerText = `${preset.kill_processes.length}건 차단`;
 
-            // 2) IoT 조명 및 모니터 밝기 제어 (control_light & set_monitor_brightness)
             controlLight(preset.light_state);
             setMonitorBrightness(preset.brightness);
+            ambientEngine.start(customNoise !== null ? customNoise : preset.noise_profile, preset.noise_volume);
+            if (enableWindowSplit) arrangeWindowsSplit(preset.split_layout, preset.window_keywords);
 
-            // 3) 백색소음 합성기 시작 (ambient_engine.start)
-            const noiseProf = customNoise !== null ? customNoise : preset.noise_profile;
-            ambientEngine.start(noiseProf, preset.noise_volume);
-
-            // 4) 창 분할 배치 (arrange_windows_split)
-            if (enableWindowSplit) {
-                arrangeWindowsSplit(preset.split_layout, preset.window_keywords);
-            }
-
-            // 5) 공부 모드일 경우 이투스 스마트 로그인 시퀀스 자동 실행
             if (mKey === "study") {
-                if (!isStudyActive) {
-                    toggleStudyMode(true);
-                }
+                if (!isStudyActive) toggleStudyMode(true);
                 openAndLoginStudySitesInChrome(["etoos"]);
-            } else {
-                if (isStudyActive) {
-                    toggleStudyMode(true);
-                }
+            } else if (isStudyActive) {
+                toggleStudyMode(true);
             }
 
-            // 6) 코어 테마 및 상태 업데이트
             const reactor = document.getElementById("reactor-container");
-            const coreStatus = document.getElementById("core-sub-status");
-            const telPreset = document.getElementById("telemetry-active-preset");
-            const popIndicator = document.getElementById("popup-active-mode-indicator");
-
             if (reactor) {
                 reactor.classList.remove("mode-study", "mode-coding", "mode-game", "mode-rest");
                 reactor.classList.add(`mode-${mKey}`);
             }
-            if (coreStatus) coreStatus.innerText = `${mKey.toUpperCase()} MODE`;
-            if (telPreset) telPreset.innerText = `MODE: ${mKey.toUpperCase()}`;
-            if (popIndicator) popIndicator.innerText = `ACTIVE: ${preset.title}`;
+            document.getElementById("core-sub-status").innerText = `${mKey.toUpperCase()} MODE`;
+            document.getElementById("telemetry-active-preset").innerText = `MODE: ${mKey.toUpperCase()}`;
+            document.getElementById("popup-active-mode-indicator").innerText = `ACTIVE: ${preset.title}`;
 
             const resultMsg = `⚡ ${preset.title} 완료 (${preset.description})`;
             setPopupFeedback(resultMsg, "#00f2ff");
-            setJarvisMessage(`${resultMsg} — 방해 앱 ${killedCount}개 차단, 조도 ${preset.brightness}% 세팅.`);
+            setJarvisMessage(resultMsg);
+
+            if (!fromRemote) {
+                patchCloudState({ currentActiveMode: currentActiveMode, isStudyActive: isStudyActive, isLightOn: isLightOn });
+            }
             return resultMsg;
         }
 
-        // =========================================================================
-        // 🎙️ 5. 자연어 & 음성 명령 파서 (handle_studyingmode_command 완벽 이식)
-        // =========================================================================
-        function handleStudyingmodeCommand(utterance) {
+        function handleStudyingmodeCommand(utterance, fromRemote = false) {
             const t = (utterance || "").trim();
-            if (!t) return "명령어를 입력해 주세요.";
+            if (!t) return;
             const tLow = t.toLowerCase();
+            if (!fromRemote) patchCloudState({ remoteCmd: { type: "utterance", value: t, ts: Date.now() } });
 
-            // 1) 이투스 / EBSi / 인강 명령 분기
-            const wantsEtoos = ["이투스", "etoos"].some(k => tLow.includes(k));
-            const wantsEbsi = ["ebsi", "ebs", "이비에스"].some(k => tLow.includes(k));
-            const wantsLecture = tLow.includes("인강") && ["열어", "켜", "틀어", "실행", "로그인"].some(v => tLow.includes(v));
-
-            if (wantsEtoos || wantsEbsi || wantsLecture) {
-                let targetSites = ["etoos"];
-                if (wantsEbsi && !wantsEtoos) targetSites = ["ebsi"];
-                else if (wantsEtoos && wantsEbsi) targetSites = ["etoos", "ebsi"];
-
+            if (["이투스", "etoos", "ebsi", "ebs", "인강"].some(k => tLow.includes(k))) {
                 openStudyingModeWindow();
-                openAndLoginStudySitesInChrome(targetSites);
-                return `🎓 ${targetSites.join(", ").toUpperCase()} 자동 로그인 및 수강중 강좌 진입 실행`;
+                return openAndLoginStudySitesInChrome(tLow.includes("ebs") ? ["ebsi"] : ["etoos"]);
             }
-
-            // 2) 백색소음 / 빗소리 / 브라운노이즈 / 바이노럴 명령 분기
-            if (["백색소음", "빗소리", "비소리", "브라운노이즈", "브라운", "바이노럴", "집중음"].some(k => tLow.includes(k))) {
-                if (["꺼", "중지", "스톱", "그만", "조용"].some(offK => tLow.includes(offK))) {
-                    return stopWhiteNoise();
-                }
-                if (tLow.includes("빗소리") || tLow.includes("비소리")) {
-                    return startWhiteNoise("rain", 0.35);
-                }
-                if (tLow.includes("바이노럴") || tLow.includes("코딩")) {
-                    return startWhiteNoise("binaural", 0.28);
-                }
+            if (["백색소음", "빗소리", "브라운", "바이노럴"].some(k => tLow.includes(k))) {
+                if (["꺼", "중지"].some(k => tLow.includes(k))) return stopWhiteNoise();
+                if (tLow.includes("빗소리")) return startWhiteNoise("rain", 0.35);
+                if (tLow.includes("바이노럴")) return startWhiteNoise("binaural", 0.28);
                 return startWhiteNoise("brown", 0.32);
             }
-
-            // 3) 화면 분할 명령 분기
-            if (["화면 분할", "화면분할", "창 분할", "창 정렬", "반반 배치"].some(k => tLow.includes(k))) {
-                return arrangeWindowsSplit("side_by_side");
-            }
-
-            // 4) 조명 명령
-            if (["불 켜", "조명 켜", "불 꺼", "조명 꺼"].some(k => tLow.includes(k))) {
-                toggleLightMode();
-                return isLightOn ? "💡 조명 점등 완료" : "💡 조명 소등 완료";
-            }
-
-            // 5) 4대 작업 모드 프리셋 분기
-            if (["코딩 모드", "개발 모드", "프로그래밍 모드", "코딩 세팅", "코딩"].some(k => tLow.includes(k))) {
-                return activateWorkspacePreset("coding");
-            }
-            if (["게임 모드", "게이밍 모드", "게임 세팅", "게임"].some(k => tLow.includes(k))) {
-                return activateWorkspacePreset("game");
-            }
-            if (["휴식 모드", "힐링 모드", "쉬는 모드", "수면 모드", "휴식"].some(k => tLow.includes(k))) {
-                return activateWorkspacePreset("rest");
-            }
-            return activateWorkspacePreset("study");
+            if (tLow.includes("코딩")) return activateWorkspacePreset("coding", null, true, fromRemote);
+            if (tLow.includes("게임")) return activateWorkspacePreset("game", null, true, fromRemote);
+            if (tLow.includes("휴식")) return activateWorkspacePreset("rest", null, true, fromRemote);
+            return activateWorkspacePreset("study", null, true, fromRemote);
         }
 
         function executeVoiceOrTextCommand() {
             const input = document.getElementById("jarvis-command-input");
             if (!input || !input.value.trim()) return;
-            const cmd = input.value.trim();
-            handleStudyingmodeCommand(cmd);
+            handleStudyingmodeCommand(input.value.trim(), false);
             input.value = "";
         }
 
@@ -1903,187 +1475,126 @@
             if (e.key === "Enter") executeVoiceOrTextCommand();
         });
 
-        // Web Speech API 음성 인식 지원
-        let recognition = null;
-        let isListening = false;
-
+        let recognition = null, isListening = false;
         function toggleVoiceRecognition() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SpeechRecognition) {
-                setJarvisMessage("현재 브라우저에서 Web Speech 음성 인식을 지원하지 않습니다. 텍스트 입력창을 이용해 주세요.");
-                return;
-            }
-
+            if (!SpeechRecognition) return setJarvisMessage("브라우저에서 음성 인식을 지원하지 않습니다.");
             if (!recognition) {
                 recognition = new SpeechRecognition();
                 recognition.lang = "ko-KR";
-                recognition.interimResults = false;
-                recognition.maxAlternatives = 1;
-
-                recognition.onstart = () => {
-                    isListening = true;
-                    const btn = document.getElementById("voice-mic-btn");
-                    if (btn) btn.classList.add("bg-rose-500", "text-white", "border-rose-400");
-                    setJarvisMessage("🎙️ 음성 명령을 듣고 있습니다... (예: 공부 모드, 이투스 열어, 빗소리 틀어)");
-                };
-
-                recognition.onresult = (event) => {
-                    const transcript = event.results[0][0].transcript;
-                    document.getElementById("jarvis-command-input").value = transcript;
-                    handleStudyingmodeCommand(transcript);
-                };
-
-                recognition.onend = () => {
-                    isListening = false;
-                    const btn = document.getElementById("voice-mic-btn");
-                    if (btn) btn.classList.remove("bg-rose-500", "text-white", "border-rose-400");
-                };
+                recognition.onresult = (e) => handleStudyingmodeCommand(e.results[0][0].transcript, false);
             }
-
-            if (isListening) {
-                recognition.stop();
-            } else {
-                recognition.start();
-            }
+            isListening ? recognition.stop() : recognition.start();
+            isListening = !isListening;
         }
 
-        // =========================================================================
-        // 🖥️ 6. 작업 모드 팝업창 열기/닫기 및 기존 대시보드 컨트롤
-        // =========================================================================
         function openStudyingModeWindow() {
-            const modal = document.getElementById("studying-mode-modal");
-            modal.classList.remove("hidden");
-            modal.classList.add("flex");
+            const m = document.getElementById("studying-mode-modal");
+            m.classList.remove("hidden"); m.classList.add("flex");
         }
-
         function closeStudyingModeWindow() {
-            const modal = document.getElementById("studying-mode-modal");
-            modal.classList.add("hidden");
-            modal.classList.remove("flex");
+            const m = document.getElementById("studying-mode-modal");
+            m.classList.add("hidden"); m.classList.remove("flex");
         }
-
         function setPopupFeedback(text, colorHex = "#00f2ff") {
             const lbl = document.getElementById("popup-lbl-feedback");
-            if (!lbl) return;
-            lbl.style.color = colorHex;
-            lbl.innerText = text;
+            if (lbl) { lbl.style.color = colorHex; lbl.innerText = text; }
         }
 
-        // 페이지 로드 시 초기화
-        window.addEventListener("DOMContentLoaded", () => {
-            updateLoginNodePreview();
-            startClock();
-            ambientEngine._clearVisualizer();
-        });
-
-        // 1. 초기 화면에서 등록된 연산 기기 상태 미리보기 업데이트
-        function updateLoginNodePreview() {
-            const nodeData = JSON.parse(localStorage.getItem(STORAGE_NODE_KEY));
-            const dot = document.getElementById("login-status-dot");
-            const text = document.getElementById("login-status-text");
-
-            if (nodeData && nodeData.registered) {
-                dot.className = "w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]";
-                text.innerText = `등록된 로컬 LLM 연산 기기: ${nodeData.deviceName} (ONLINE)`;
-            } else {
-                dot.className = "w-2 h-2 rounded-full bg-amber-400";
-                text.innerText = "현재 등록된 로컬 LLM 연산 기기: 없음 (PANEL에서 등록 가능)";
-            }
-        }
-
-        // 2. 비밀번호 모달 열기/닫기
+        // =========================================================================
+        // 🔐 4. PANEL 기기 등록 (함수 본체에서 직접 Firebase PATCH 호출!)
+        // =========================================================================
         function openAuthModal(role) {
             pendingRole = role;
             document.getElementById("modal-role-title").innerText = `${role} 모드 보안 인증`;
             document.getElementById("password-input").value = "";
             document.getElementById("auth-error-msg").innerText = "";
             const modal = document.getElementById("auth-modal");
-            modal.classList.remove("hidden");
-            modal.classList.add("flex");
+            modal.classList.remove("hidden"); modal.classList.add("flex");
             setTimeout(() => document.getElementById("password-input").focus(), 50);
         }
-
         function closeAuthModal() {
             const modal = document.getElementById("auth-modal");
-            modal.classList.add("hidden");
-            modal.classList.remove("flex");
+            modal.classList.add("hidden"); modal.classList.remove("flex");
         }
-
         function fillDemoPassword() {
             document.getElementById("password-input").value = SYSTEM_PW;
-            document.getElementById("auth-error-msg").innerText = "";
         }
-
         document.getElementById("password-input").addEventListener("keydown", (e) => {
             if (e.key === "Enter") verifyPassword();
         });
 
-        // 3. 비밀번호 검증 및 역할 분기
-        function verifyPassword() {
+        async function verifyPassword() {
             const inputPw = document.getElementById("password-input").value;
             if (inputPw !== SYSTEM_PW) {
-                document.getElementById("auth-error-msg").innerText = "비밀번호가 일치하지 않습니다. 다시 확인하세요.";
+                document.getElementById("auth-error-msg").innerText = "비밀번호가 일치하지 않습니다.";
                 return;
             }
-
             closeAuthModal();
             document.getElementById("login-screen").classList.add("hidden");
 
             if (pendingRole === "PANEL") {
-                registerCurrentDeviceAsPanel();
+                await registerCurrentDeviceAsPanel();
                 showPanelScreen();
             } else if (pendingRole === "USER") {
+                await pullStateFromCloud();
                 showUserDashboard();
             }
         }
 
         function detectDeviceName() {
             const ua = navigator.userAgent;
-            let platform = "Desktop-Node";
-            if (/Windows/i.test(ua)) platform = "Windows-LLM-Node";
-            else if (/Mac/i.test(ua)) platform = "Mac-LLM-Node";
-            else if (/Linux/i.test(ua)) platform = "Linux-LLM-Node";
-            else if (/Android|iPhone|iPad/i.test(ua)) platform = "Mobile-Edge-Node";
-            return `${platform} #01`;
+            if (/Windows/i.test(ua)) return "Windows-LLM-Node #01";
+            if (/Mac/i.test(ua)) return "Mac-LLM-Node #01";
+            if (/Android|iPhone|iPad/i.test(ua)) return "Mobile-Edge-Node #01";
+            return "Desktop-LLM-Node #01";
         }
 
-        function registerCurrentDeviceAsPanel() {
-            const existing = JSON.parse(localStorage.getItem(STORAGE_NODE_KEY));
+        // PANEL 접속 즉시 로컬 저장 + Firebase 클라우드에 직접 PATCH 업로드!
+        async function registerCurrentDeviceAsPanel() {
+            const existing = cloudNodeCache || JSON.parse(localStorage.getItem(STORAGE_NODE_KEY));
             const nowStr = new Date().toLocaleString("ko-KR");
             const nodeInfo = {
                 registered: true,
                 deviceName: (existing && existing.deviceName) ? existing.deviceName : detectDeviceName(),
                 registeredAt: nowStr
             };
+            cloudNodeCache = nodeInfo;
             localStorage.setItem(STORAGE_NODE_KEY, JSON.stringify(nodeInfo));
+            updateNodeUIEverywhere(nodeInfo);
+            await patchCloudState({ node: nodeInfo });
         }
 
         function showPanelScreen() {
-            const nodeInfo = JSON.parse(localStorage.getItem(STORAGE_NODE_KEY));
+            const nodeInfo = cloudNodeCache || JSON.parse(localStorage.getItem(STORAGE_NODE_KEY));
             document.getElementById("panel-device-name").innerText = nodeInfo.deviceName;
             document.getElementById("panel-registered-time").innerText = nodeInfo.registeredAt;
             document.getElementById("custom-device-input").value = nodeInfo.deviceName;
-
             const panel = document.getElementById("panel-screen");
-            panel.classList.remove("hidden");
-            panel.classList.add("flex");
+            panel.classList.remove("hidden"); panel.classList.add("flex");
         }
 
-        function updateDeviceName() {
+        async function updateDeviceName() {
             const newName = document.getElementById("custom-device-input").value.trim();
             if (!newName) return;
-            const nodeInfo = JSON.parse(localStorage.getItem(STORAGE_NODE_KEY));
-            nodeInfo.deviceName = newName;
-            nodeInfo.registeredAt = new Date().toLocaleString("ko-KR");
+            const nodeInfo = {
+                registered: true,
+                deviceName: newName,
+                registeredAt: new Date().toLocaleString("ko-KR")
+            };
+            cloudNodeCache = nodeInfo;
             localStorage.setItem(STORAGE_NODE_KEY, JSON.stringify(nodeInfo));
-
             document.getElementById("panel-device-name").innerText = nodeInfo.deviceName;
             document.getElementById("panel-registered-time").innerText = nodeInfo.registeredAt;
+            updateNodeUIEverywhere(nodeInfo);
+            await patchCloudState({ node: nodeInfo });
+            document.getElementById("panel-cloud-status").innerText = "✅ 클라우드 동기화 완료 (" + newName + ")";
         }
 
-        function switchToUserDirectly() {
+        async function switchToUserDirectly() {
             document.getElementById("panel-screen").classList.add("hidden");
             document.getElementById("panel-screen").classList.remove("flex");
+            await pullStateFromCloud();
             showUserDashboard();
         }
 
@@ -2093,37 +1604,12 @@
             document.getElementById("panel-screen").classList.remove("flex");
             document.getElementById("user-dashboard").classList.add("hidden");
             document.getElementById("login-screen").classList.remove("hidden");
-            updateLoginNodePreview();
+            pullStateFromCloud();
         }
 
-        // 4. USER 대시보드 초기화 및 렌더링
         function showUserDashboard() {
-            const dashboard = document.getElementById("user-dashboard");
-            dashboard.classList.remove("hidden");
-
-            const nodeInfo = JSON.parse(localStorage.getItem(STORAGE_NODE_KEY));
-            const deviceDisplay = document.getElementById("compute-device-name");
-            const badge = document.getElementById("node-badge");
-            const telemetryLlm = document.getElementById("telemetry-llm");
-
-            if (nodeInfo && nodeInfo.registered) {
-                deviceDisplay.innerText = nodeInfo.deviceName;
-                deviceDisplay.className = "mt-1 text-sm sm:text-base font-bold text-cyan-300 truncate";
-                badge.innerText = "ONLINE";
-                badge.className = "text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 border border-emerald-400/60 text-emerald-300 font-bold";
-                telemetryLlm.innerText = "CONNECTED";
-                telemetryLlm.className = "font-mono-code text-emerald-400";
-                setJarvisMessage(`연산 기기 [${nodeInfo.deviceName}] 연결 완료. 공부 모드 및 작업 모드 엔진이 대기 중입니다.`);
-            } else {
-                deviceDisplay.innerText = "미등록 (PANEL 접속 필요)";
-                deviceDisplay.className = "mt-1 text-sm sm:text-base font-bold text-amber-300 truncate";
-                badge.innerText = "UNREGISTERED";
-                badge.className = "text-[10px] px-2 py-0.5 rounded bg-amber-500/20 border border-amber-400/60 text-amber-300 font-bold";
-                telemetryLlm.innerText = "NO NODE";
-                telemetryLlm.className = "font-mono-code text-amber-400";
-                setJarvisMessage("경고: 로컬 LLM 연산 기기가 미등록 상태입니다. PANEL 모드에서 기기를 등록하세요.");
-            }
-
+            document.getElementById("user-dashboard").classList.remove("hidden");
+            updateNodeUIEverywhere(cloudNodeCache);
             renderCalendar();
             renderScheduleList();
         }
@@ -2133,236 +1619,143 @@
             if (el) el.innerText = msg;
         }
 
-        // 5. 원클릭 모드 1: 공부 모드 (studyingmode.py 연동)
         function toggleStudyMode(skipPresetTrigger = false) {
             isStudyActive = !isStudyActive;
             const btn = document.getElementById("btn-study-mode");
             const badge = document.getElementById("badge-study");
             const timerText = document.getElementById("study-timer-text");
-            const reactor = document.getElementById("reactor-container");
-            const coreStatus = document.getElementById("core-sub-status");
 
             if (isStudyActive) {
-                btn.classList.add("active");
-                badge.innerText = "ON";
-                badge.className = "font-orbitron text-xs px-2.5 py-1 rounded border border-cyan-300 bg-cyan-400/25 text-white font-bold";
-                reactor.classList.add("mode-study");
-                coreStatus.innerText = "STUDY FOCUS MODE";
+                btn.classList.add("active"); badge.innerText = "ON";
                 studySeconds = 0;
-                timerText.innerText = "이투스 수강중강좌 · 집중 타이머: 00:00";
-
                 clearInterval(studyInterval);
                 studyInterval = setInterval(() => {
                     studySeconds++;
-                    const mins = String(Math.floor(studySeconds / 60)).padStart(2, "0");
-                    const secs = String(studySeconds % 60).padStart(2, "0");
-                    timerText.innerText = `이투스 수강중강좌 · 집중 타이머: ${mins}:${secs}`;
+                    const m = String(Math.floor(studySeconds / 60)).padStart(2, "0");
+                    const s = String(studySeconds % 60).padStart(2, "0");
+                    timerText.innerText = `이투스 수강중강좌 · 집중 타이머: ${m}:${s}`;
                 }, 1000);
-
                 if (!skipPresetTrigger) {
                     openStudyingModeWindow();
                     activateWorkspacePreset("study");
                 }
             } else {
-                btn.classList.remove("active");
-                badge.innerText = "OFF";
-                badge.className = "font-orbitron text-xs px-2.5 py-1 rounded border border-cyan-400/50 text-cyan-300";
-                reactor.classList.remove("mode-study");
-                coreStatus.innerText = "SYSTEM READY";
+                btn.classList.remove("active"); badge.innerText = "OFF";
                 clearInterval(studyInterval);
                 timerText.innerText = "이투스 수강중강좌 · 브라운노이즈";
                 if (!skipPresetTrigger) {
                     ambientEngine.stop();
                     setMonitorBrightness(100);
-                    setJarvisMessage("공부 모드가 해제되었습니다. 백색소음을 정지하고 밝기를 복원합니다.");
+                    patchCloudState({ isStudyActive: false, currentActiveMode: "none" });
                 }
             }
         }
 
-        // 6. 원클릭 모드 2: 불 껐다 키기 (IoT 조명)
         function toggleLightMode(silentMsg = false) {
             isLightOn = !isLightOn;
             const btn = document.getElementById("btn-light-mode");
             const badge = document.getElementById("badge-light");
             const subText = document.getElementById("light-sub-text");
-
             if (isLightOn) {
-                btn.classList.add("active");
-                badge.innerText = "ON";
-                badge.className = "font-orbitron text-xs px-2.5 py-1 rounded border border-amber-300 bg-amber-400/25 text-amber-200 font-bold";
+                btn.classList.add("active"); badge.innerText = "ON";
                 subText.innerText = "IoT 스마트 조명 점등됨 (control_light=1)";
                 document.body.classList.add("room-light-on");
-                if (!silentMsg) setJarvisMessage("조명을 켰습니다. 실내 조도가 최적화되었습니다.");
             } else {
-                btn.classList.remove("active");
-                badge.innerText = "OFF";
-                badge.className = "font-orbitron text-xs px-2.5 py-1 rounded border border-cyan-400/50 text-cyan-300";
+                btn.classList.remove("active"); badge.innerText = "OFF";
                 subText.innerText = "IoT 스마트 조명 소등 상태 (control_light=0)";
                 document.body.classList.remove("room-light-on");
-                if (!silentMsg) setJarvisMessage("조명을 껐습니다.");
             }
+            if (!silentMsg) patchCloudState({ isLightOn: isLightOn });
         }
 
-        // 7. 원클릭 모드 3: 스케쥴 관리 (좌측 하단 캘린더 제어)
         function focusSchedulePanel() {
             const calPanel = document.getElementById("schedule-calendar-panel");
             const btn = document.getElementById("btn-schedule-mode");
             const badge = document.getElementById("badge-schedule");
-
             isCalendarVisible = !isCalendarVisible;
-            if (isCalendarVisible) {
-                calPanel.classList.remove("hidden");
-                btn.classList.add("active");
-                badge.innerText = "ON";
-                setJarvisMessage("좌측 하단에 스케쥴 캘린더를 표시합니다.");
-            } else {
-                calPanel.classList.add("hidden");
-                btn.classList.remove("active");
-                badge.innerText = "OFF";
-                setJarvisMessage("스케쥴 캘린더 패널을 숨겼습니다.");
-            }
+            calPanel.classList.toggle("hidden", !isCalendarVisible);
+            btn.classList.toggle("active", isCalendarVisible);
+            badge.innerText = isCalendarVisible ? "ON" : "OFF";
         }
 
-        // 8. 월간 캘린더 렌더링 (2026년 11월 기준)
         function renderCalendar() {
-            const year = 2026;
-            const month = 10; // 0-indexed (10 = 11월)
-            const todayDate = 13;
-
-            document.getElementById("calendar-month-label").innerText = `${year}년 ${month + 1}월`;
+            const year = 2026, month = 10, todayDate = 13;
             const grid = document.getElementById("calendar-days-grid");
+            if (!grid) return;
             grid.innerHTML = "";
-
             const firstDay = new Date(year, month, 1).getDay();
             const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-            for (let i = 0; i < firstDay; i++) {
-                const empty = document.createElement("div");
-                grid.appendChild(empty);
-            }
-
+            for (let i = 0; i < firstDay; i++) grid.appendChild(document.createElement("div"));
             for (let day = 1; day <= daysInMonth; day++) {
-                const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-                const hasEvent = schedules.some(s => s.date === dateStr);
-                const isToday = day === todayDate;
-                const isSelected = selectedDateFilter === dateStr;
-
+                const dateStr = `2026-11-${String(day).padStart(2, "0")}`;
                 const cell = document.createElement("button");
                 cell.type = "button";
-                cell.onclick = () => filterSchedulesByDate(dateStr);
-                cell.className = `relative py-1 rounded text-xs transition cursor-pointer ${
-                    isToday
-                        ? "bg-cyan-400 text-slate-950 font-bold shadow-[0_0_8px_#00f2ff]"
-                        : isSelected
-                        ? "bg-cyan-500/30 border border-cyan-300 text-white font-bold"
-                        : "text-cyan-100/80 hover:bg-cyan-500/20"
-                }`;
+                cell.onclick = () => { selectedDateFilter = dateStr; renderCalendar(); renderScheduleList(); };
+                cell.className = `py-1 rounded text-xs cursor-pointer ${day === todayDate ? "bg-cyan-400 text-slate-950 font-bold" : "text-cyan-100/80 hover:bg-cyan-500/20"}`;
                 cell.innerText = day;
-
-                if (hasEvent && !isToday) {
-                    const dot = document.createElement("span");
-                    dot.className = "block w-1 h-1 rounded-full bg-cyan-400 mx-auto mt-0.5";
-                    cell.appendChild(dot);
-                }
-
                 grid.appendChild(cell);
             }
         }
 
-        function filterSchedulesByDate(dateStr) {
-            selectedDateFilter = dateStr;
-            document.getElementById("new-sched-date").value = dateStr;
-            renderCalendar();
-            renderScheduleList();
-            setJarvisMessage(`${dateStr} 일정을 조회합니다.`);
-        }
-
-        function showAllSchedules() {
-            selectedDateFilter = null;
-            renderCalendar();
-            renderScheduleList();
-        }
+        function showAllSchedules() { selectedDateFilter = null; renderCalendar(); renderScheduleList(); }
 
         function renderScheduleList() {
             const container = document.getElementById("schedule-items-container");
-            const header = document.getElementById("schedule-list-header");
-
-            const filtered = selectedDateFilter
-                ? schedules.filter(s => s.date === selectedDateFilter)
-                : schedules;
-
-            header.innerText = selectedDateFilter
-                ? `${selectedDateFilter} 일정 (${filtered.length}건)`
-                : `전체 등록된 스케쥴 (${filtered.length}건)`;
-
+            if (!container) return;
+            const filtered = selectedDateFilter ? schedules.filter(s => s.date === selectedDateFilter) : schedules;
             if (filtered.length === 0) {
                 container.innerHTML = `<div class="text-cyan-400/50 py-2 text-center">등록된 일정이 없습니다.</div>`;
                 return;
             }
-
-            const sorted = [...filtered].sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`));
-
-            container.innerHTML = sorted.map(item => `
+            container.innerHTML = filtered.map(item => `
                 <div class="flex items-center justify-between bg-cyan-950/35 border border-cyan-500/20 px-2.5 py-1.5 rounded">
                     <div class="truncate pr-2">
                         <span class="text-cyan-400 font-mono-code text-[11px]">[${item.date.slice(5)} ${item.time}]</span>
                         <span class="text-white ml-1">${item.title}</span>
                     </div>
-                    <button onclick="deleteScheduleItem(${item.id})" class="text-cyan-400/60 hover:text-rose-400 text-xs px-1 cursor-pointer" title="삭제">&times;</button>
+                    <button onclick="deleteScheduleItem(${item.id})" class="text-cyan-400/60 hover:text-rose-400 text-xs px-1 cursor-pointer">&times;</button>
                 </div>
             `).join("");
         }
 
         function toggleAddScheduleForm() {
-            const form = document.getElementById("add-schedule-form");
-            form.classList.toggle("hidden");
+            document.getElementById("add-schedule-form").classList.toggle("hidden");
         }
 
         function addScheduleItem() {
             const dateVal = document.getElementById("new-sched-date").value;
             const timeVal = document.getElementById("new-sched-time").value;
             const titleVal = document.getElementById("new-sched-title").value.trim();
-
-            if (!dateVal || !titleVal) {
-                setJarvisMessage("날짜와 일정 내용을 모두 입력해 주세요.");
-                return;
-            }
-
-            schedules.push({
-                id: Date.now(),
-                date: dateVal,
-                time: timeVal || "09:00",
-                title: titleVal
-            });
+            if (!dateVal || !titleVal) return;
+            schedules.push({ id: Date.now(), date: dateVal, time: timeVal || "09:00", title: titleVal });
             localStorage.setItem(STORAGE_SCHED_KEY, JSON.stringify(schedules));
-
             document.getElementById("new-sched-title").value = "";
             document.getElementById("add-schedule-form").classList.add("hidden");
-            selectedDateFilter = null;
-            renderCalendar();
-            renderScheduleList();
-            setJarvisMessage(`새 일정 [${titleVal}]이(가) 캘린더에 등록되었습니다.`);
+            renderCalendar(); renderScheduleList();
+            patchCloudState({ schedules: schedules });
         }
 
         function deleteScheduleItem(id) {
             schedules = schedules.filter(s => s.id !== id);
             localStorage.setItem(STORAGE_SCHED_KEY, JSON.stringify(schedules));
-            renderCalendar();
-            renderScheduleList();
-            setJarvisMessage("선택한 일정이 삭제되었습니다.");
+            renderCalendar(); renderScheduleList();
+            patchCloudState({ schedules: schedules });
         }
 
         function startClock() {
             const update = () => {
-                const now = new Date();
-                const clockEl = document.getElementById("telemetry-clock");
-                if (clockEl) {
-                    clockEl.innerText = now.toTimeString().split(" ")[0];
-                }
+                const el = document.getElementById("telemetry-clock");
+                if (el) el.innerText = new Date().toTimeString().split(" ")[0];
             };
-            update();
-            setInterval(update, 1000);
+            update(); setInterval(update, 1000);
         }
+
+        window.addEventListener("DOMContentLoaded", () => {
+            startClock();
+            ambientEngine._clearVisualizer();
+            pullStateFromCloud();
+            setInterval(pullStateFromCloud, 1200);
+        });
     </script>
 </body>
 </html>
