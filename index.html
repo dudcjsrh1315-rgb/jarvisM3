@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>J.A.R.V.I.S. AI Control System // Cloud Sync v9.0</title>
+    <title>J.A.R.V.I.S. AI Control System // Cloud Multi-Device Sync</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Noto+Sans+KR:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
@@ -214,40 +214,49 @@
     <div class="hud-grid"></div>
     <div class="hud-scanline"></div>
 
-    <!-- 우측 상단 고정 클라우드 DB 통신 상태 배지 -->
-    <div class="fixed top-2 right-2 z-50 px-2.5 py-1 rounded bg-[#030914]/90 border border-cyan-500/40 text-[10px] font-mono-code flex items-center gap-1.5">
+    <!-- 우측 상단 실시간 Firebase 클라우드 상태 표시기 -->
+    <div class="fixed top-2 right-2 z-50 px-3 py-1 rounded bg-[#030914]/95 border border-cyan-500/40 text-[11px] font-mono-code flex items-center gap-2 shadow-lg">
         <span id="cloud-sync-dot" class="w-2 h-2 rounded-full bg-amber-400"></span>
-        <span id="cloud-sync-text" class="text-cyan-200">CLOUD DB: CONNECTING...</span>
+        <span id="cloud-sync-text" class="text-cyan-200">CLOUD DB: 연결 확인 중...</span>
     </div>
 
     <!-- 1. 초기 접속 화면 (USER / PANEL 선택) -->
     <section id="login-screen" class="relative z-10 flex flex-col items-center justify-center min-h-screen px-4">
-        <div class="text-center mb-12">
+        <div class="text-center mb-10">
             <div class="inline-block px-3 py-1 mb-3 text-xs tracking-[0.3em] border border-cyan-400/40 rounded-full text-cyan-300 bg-cyan-950/30">
-                STARK INDUSTRIES // AI INTERFACE v9.0 CLOUD SYNC
+                STARK INDUSTRIES // MULTI-DEVICE CLOUD LINK
             </div>
             <h1 class="font-orbitron text-4xl sm:text-6xl font-black tracking-[0.22em] neon-text">
                 J.A.R.V.I.S.
             </h1>
             <p class="mt-3 text-sm sm:text-base text-cyan-200/70 tracking-wider">
-                접속 모드를 선택하십시오 (Firebase 실시간 기기 연동 탑재)
+                접속 모드를 선택하십시오 (동일 링크 멀티 디바이스 실시간 연동)
             </p>
         </div>
 
         <div class="flex flex-col sm:flex-row gap-6 w-full max-w-md justify-center">
             <button onclick="openAuthModal('USER')" class="role-btn flex-1 py-5 px-8 rounded-lg font-orbitron text-xl font-bold tracking-[0.2em] cursor-pointer">
                 USER
-                <span class="block text-[11px] font-sans font-normal tracking-normal mt-1 opacity-80">비서 대시보드 &amp; 작업 모드 제어</span>
+                <span class="block text-[11px] font-sans font-normal tracking-normal mt-1 opacity-80">원격 비서 대시보드 제어</span>
             </button>
             <button onclick="openAuthModal('PANEL')" class="role-btn flex-1 py-5 px-8 rounded-lg font-orbitron text-xl font-bold tracking-[0.2em] cursor-pointer">
                 PANEL
-                <span class="block text-[11px] font-sans font-normal tracking-normal mt-1 opacity-80">로컬 LLM 연산 기기 등록</span>
+                <span class="block text-[11px] font-sans font-normal tracking-normal mt-1 opacity-80">현재 기기를 연산 노드로 등록</span>
             </button>
         </div>
 
-        <div id="login-node-status" class="mt-10 text-xs text-cyan-300/70 flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full bg-gray-500" id="login-status-dot"></span>
-            <span id="login-status-text">현재 등록된 로컬 LLM 연산 기기: 클라우드 조회 중...</span>
+        <!-- 첫 화면에서도 클라우드에 등록된 기기 상태를 즉시 확인 및 바로 연결 가능 -->
+        <div class="hud-panel mt-8 px-5 py-3.5 rounded-xl max-w-md w-full flex items-center justify-between gap-3">
+            <div class="flex items-center gap-2.5 truncate">
+                <span class="w-2.5 h-2.5 rounded-full bg-gray-500 shrink-0" id="login-status-dot"></span>
+                <div class="truncate">
+                    <div class="text-[10px] text-cyan-400/80 font-orbitron">REGISTERED COMPUTE NODE</div>
+                    <div id="login-status-text" class="text-xs sm:text-sm font-bold text-white truncate">클라우드에서 기기 조회 중...</div>
+                </div>
+            </div>
+            <button onclick="pullStateFromCloud(true)" class="px-2.5 py-1 rounded border border-cyan-400/50 text-[11px] text-cyan-300 hover:bg-cyan-400 hover:text-slate-950 transition shrink-0 cursor-pointer">
+                ↻ 새로고침
+            </button>
         </div>
     </section>
 
@@ -268,11 +277,11 @@
 
             <div class="flex gap-2">
                 <button onclick="fillDemoPassword()" type="button"
-                    class="px-3 py-2.5 rounded border border-cyan-500/30 text-xs text-cyan-300/80 hover:bg-cyan-950/60 transition">
-                    테스트 비번 자동입력
+                    class="px-3 py-2.5 rounded border border-cyan-500/30 text-xs text-cyan-300/80 hover:bg-cyan-950/60 transition cursor-pointer">
+                    비번 자동입력
                 </button>
                 <button onclick="verifyPassword()" type="button"
-                    class="flex-1 py-2.5 rounded bg-cyan-400 text-[#02060d] font-bold text-sm tracking-wider hover:bg-cyan-300 transition shadow-[0_0_15px_rgba(0,242,255,0.5)]">
+                    class="flex-1 py-2.5 rounded bg-cyan-400 text-[#02060d] font-bold text-sm tracking-wider hover:bg-cyan-300 transition shadow-[0_0_15px_rgba(0,242,255,0.5)] cursor-pointer">
                     인증 및 접속
                 </button>
             </div>
@@ -284,23 +293,23 @@
         <div class="hud-panel w-full max-w-lg p-8 rounded-xl text-center">
             <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-400/50 text-emerald-300 text-xs mb-4">
                 <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-                LOCAL LLM COMPUTE NODE ACTIVE (CLOUD SYNCED)
+                CLOUD COMPUTE NODE REGISTERED
             </div>
             <h2 class="font-orbitron text-2xl sm:text-3xl font-bold neon-text mb-2">
-                연산 기기 등록 완료
+                연산 기기 클라우드 등록 완료
             </h2>
             <p class="text-sm text-cyan-100/80 mb-6">
-                현재 단말기가 Firebase 클라우드를 통해 모든 기기의 J.A.R.V.I.S. 연산 노드로 공유되었습니다.
+                이제 다른 기기(스마트폰·태블릿·PC)에서 동일 링크로 접속하면 아래 기기가 즉시 표시되고 연결됩니다.
             </p>
 
             <div class="bg-[#030812]/90 border border-cyan-500/30 rounded-lg p-4 text-left space-y-2.5 mb-6 text-xs sm:text-sm">
                 <div class="flex justify-between">
                     <span class="text-cyan-400/80">등록된 기기명:</span>
-                    <span id="panel-device-name" class="font-bold text-white">Local-LLM-Node</span>
+                    <span id="panel-device-name" class="font-bold text-white">-</span>
                 </div>
                 <div class="flex justify-between">
                     <span class="text-cyan-400/80">클라우드 동기화 상태:</span>
-                    <span id="panel-cloud-status" class="text-emerald-400 font-semibold">FIREBASE RTDB 전송 완료</span>
+                    <span id="panel-cloud-status" class="text-emerald-400 font-semibold">동기화 중...</span>
                 </div>
                 <div class="flex justify-between">
                     <span class="text-cyan-400/80">등록 시각:</span>
@@ -309,13 +318,13 @@
             </div>
 
             <div class="mb-6 text-left">
-                <label class="block text-xs text-cyan-300 mb-1.5">연산 기기 식별 이름 변경 (선택)</label>
+                <label class="block text-xs text-cyan-300 mb-1.5">연산 기기 이름 변경 (변경 시 모든 기기에 즉시 반영)</label>
                 <div class="flex gap-2">
-                    <input type="text" id="custom-device-input" placeholder="예: Main-RTX5070-PC"
+                    <input type="text" id="custom-device-input" placeholder="예: 거실 노트북 / Main-PC"
                         class="flex-1 px-3 py-2 rounded bg-[#030710] border border-cyan-500/50 text-sm text-white focus:outline-none focus:border-cyan-300">
                     <button onclick="updateDeviceName()"
                         class="px-4 py-2 rounded border border-cyan-400 text-cyan-300 text-xs font-bold hover:bg-cyan-400 hover:text-slate-950 transition cursor-pointer">
-                        클라우드 적용
+                        이름 저장
                     </button>
                 </div>
             </div>
@@ -335,24 +344,31 @@
 
     <!-- 3. USER 메인 대시보드 -->
     <main id="user-dashboard" class="relative z-10 hidden min-h-screen w-full p-4 lg:p-6 flex flex-col justify-between">
-        <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mt-4 sm:mt-0">
+        <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mt-6 sm:mt-0">
             <div class="flex items-center gap-3">
                 <div class="w-3 h-3 rounded-full bg-cyan-400 shadow-[0_0_10px_#00f2ff]"></div>
                 <div>
                     <h1 class="font-orbitron text-lg sm:text-xl font-bold tracking-[0.2em] neon-text">J.A.R.V.I.S. OS</h1>
-                    <p class="text-[11px] text-cyan-300/70">PERSONAL AI ASSISTANT // studyingmode.py ENGINE</p>
+                    <p class="text-[11px] text-cyan-300/70">PERSONAL AI ASSISTANT // REMOTE LINK ACTIVE</p>
                 </div>
             </div>
 
-            <div class="hud-panel px-4 py-3 rounded-lg self-end sm:self-auto min-w-[260px]">
-                <div class="flex items-center justify-between gap-4">
+            <!-- 우측 상단: 등록된 연산 기기 표시 및 원격 연결 버튼 -->
+            <div class="hud-panel px-4 py-3 rounded-lg self-end sm:self-auto min-w-[280px]">
+                <div class="flex items-center justify-between gap-3">
                     <span class="text-[11px] tracking-wider text-cyan-300/80 uppercase">연산 기기 (Local LLM)</span>
                     <span id="node-badge" class="text-[10px] px-2 py-0.5 rounded bg-rose-500/20 border border-rose-400/50 text-rose-300 font-bold">
-                        OFFLINE
+                        CHECKING
                     </span>
                 </div>
                 <div id="compute-device-name" class="mt-1 text-sm sm:text-base font-bold text-white truncate">
-                    클라우드에서 확인 중...
+                    클라우드 조회 중...
+                </div>
+                <div class="mt-2 pt-2 border-t border-cyan-500/30 flex items-center justify-between gap-2">
+                    <span id="node-ping-text" class="text-[10px] text-cyan-300/75 font-mono-code">실시간 동기화 대기</span>
+                    <button onclick="pingConnectedNode()" class="px-2.5 py-1 rounded bg-cyan-400/20 border border-cyan-400 text-[10px] text-cyan-200 font-bold hover:bg-cyan-400 hover:text-slate-950 transition cursor-pointer">
+                        🔗 기기 연결 확인
+                    </button>
                 </div>
             </div>
         </header>
@@ -383,7 +399,7 @@
 
                             <div class="grid grid-cols-2 gap-1.5">
                                 <button onclick="openStudyingModeWindow()"
-                                    class="py-2 px-2.5 rounded bg-[#041328] hover:bg-cyan-500/25 border border-cyan-400/50 text-[11px] font-bold text-cyan-300 flex items-center justify-center gap-1 transition shadow-[0_0_10px_rgba(0,242,255,0.12)] cursor-pointer">
+                                    class="py-2 px-2.5 rounded bg-[#041328] hover:bg-cyan-500/25 border border-cyan-400/50 text-[11px] font-bold text-cyan-300 flex items-center justify-center gap-1 transition cursor-pointer">
                                     <span>◈</span>
                                     <span>작업 모드 제어창</span>
                                 </button>
@@ -428,10 +444,10 @@
                             <span id="mini-noise-label" class="text-[11px] text-cyan-200/80">🔇 백색소음: 정지</span>
                         </div>
                         <div class="flex gap-1">
-                            <button onclick="startWhiteNoise('brown', 0.32)" class="px-1.5 py-0.5 rounded bg-cyan-950/80 border border-cyan-500/30 text-[10px] hover:border-cyan-300">📚브라운</button>
-                            <button onclick="startWhiteNoise('binaural', 0.28)" class="px-1.5 py-0.5 rounded bg-cyan-950/80 border border-amber-500/30 text-[10px] text-amber-300 hover:border-amber-300">🧠바이노럴</button>
-                            <button onclick="startWhiteNoise('rain', 0.35)" class="px-1.5 py-0.5 rounded bg-cyan-950/80 border border-emerald-500/30 text-[10px] text-emerald-300 hover:border-emerald-300">🌧️빗소리</button>
-                            <button onclick="stopWhiteNoise()" class="px-1.5 py-0.5 rounded bg-rose-950/80 border border-rose-500/40 text-[10px] text-rose-300 hover:border-rose-300">🔇</button>
+                            <button onclick="startWhiteNoise('brown', 0.32)" class="px-1.5 py-0.5 rounded bg-cyan-950/80 border border-cyan-500/30 text-[10px] hover:border-cyan-300 cursor-pointer">📚브라운</button>
+                            <button onclick="startWhiteNoise('binaural', 0.28)" class="px-1.5 py-0.5 rounded bg-cyan-950/80 border border-amber-500/30 text-[10px] text-amber-300 hover:border-amber-300 cursor-pointer">🧠바이노럴</button>
+                            <button onclick="startWhiteNoise('rain', 0.35)" class="px-1.5 py-0.5 rounded bg-cyan-950/80 border border-emerald-500/30 text-[10px] text-emerald-300 hover:border-emerald-300 cursor-pointer">🌧️빗소리</button>
+                            <button onclick="stopWhiteNoise()" class="px-1.5 py-0.5 rounded bg-rose-950/80 border border-rose-500/40 text-[10px] text-rose-300 hover:border-rose-300 cursor-pointer">🔇</button>
                         </div>
                     </div>
                 </div>
@@ -468,11 +484,11 @@
                             <span class="hidden sm:inline">음성인식</span>
                         </button>
                         <input id="jarvis-command-input" type="text"
-                            placeholder="명령어 입력 (예: 공부 모드, 이투스 열어, EBSi 로그인, 코딩 모드, 빗소리 틀어)"
+                            placeholder="원격 명령어 입력 (예: 공부 모드, 이투스 열어, 코딩 모드, 빗소리 틀어)"
                             class="flex-1 bg-transparent text-xs text-white placeholder-cyan-400/45 focus:outline-none px-1">
                         <button onclick="executeVoiceOrTextCommand()" type="button"
                             class="px-3 py-1.5 rounded bg-cyan-400 text-slate-950 font-bold text-xs hover:bg-cyan-300 transition shrink-0 cursor-pointer">
-                            실행
+                            전송
                         </button>
                     </div>
                 </div>
@@ -490,10 +506,10 @@
                     </div>
                     <div class="text-xs text-cyan-200/80 flex justify-between">
                         <span>현재 시각</span>
-                        <span id="telemetry-clock" class="font-mono-code text-cyan-300">16:37:00</span>
+                        <span id="telemetry-clock" class="font-mono-code text-cyan-300">16:47:00</span>
                     </div>
                     <div class="text-xs text-cyan-200/80 flex justify-between">
-                        <span>LLM 추론 모듈</span>
+                        <span>LLM 추론 노드</span>
                         <span id="telemetry-llm" class="font-mono-code text-white">STANDBY</span>
                     </div>
                     <div class="text-xs text-cyan-200/80 flex justify-between">
@@ -598,7 +614,7 @@
                 <div class="flex items-center gap-3">
                     <span class="text-[#00f2ff] font-bold text-sm sm:text-base tracking-wide">◈ 작업 모드 (J.A.R.V.I.S. studyingmode.py)</span>
                     <span class="hidden sm:inline-block text-[11px] font-mono-code px-2 py-0.5 rounded bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
-                        v9.0 Smart Login &amp; Cloud Sync
+                        Multi-Device Cloud Sync Engine
                     </span>
                 </div>
                 <button onclick="closeStudyingModeWindow()"
@@ -621,7 +637,7 @@
                 <div class="lg:col-span-7 flex flex-col justify-between space-y-3">
                     <div class="bg-[#051020] border border-[#00f2ff] rounded-lg p-2 flex flex-col sm:flex-row gap-2">
                         <button onclick="runEtoosSmartLoginOnly()"
-                            class="flex-1 bg-[#0b2c4d] hover:bg-[#00f2ff] text-[#00f2ff] hover:text-[#02060d] font-bold text-xs sm:text-sm py-2.5 px-4 rounded transition flex items-center justify-center gap-2 cursor-pointer shadow-[0_0_12px_rgba(0,242,255,0.2)]">
+                            class="flex-1 bg-[#0b2c4d] hover:bg-[#00f2ff] text-[#00f2ff] hover:text-[#02060d] font-bold text-xs sm:text-sm py-2.5 px-4 rounded transition flex items-center justify-center gap-2 cursor-pointer">
                             <span>🎓 이투스 수강중 강좌 (스마트 로그인 시퀀스 실행)</span>
                         </button>
                         <button onclick="runEbsiLoginSequence()"
@@ -818,24 +834,23 @@
 
     <script>
         // =========================================================================
-        // 🌐 0. Firebase Realtime Database 클라우드 동기화 핵심 상수
+        // 🌐 0. Firebase Realtime Database 단일 진실 공급원(Single Source of Truth) 설정
         // =========================================================================
-        const FIREBASE_DB_URL = "https://jarvis-70cfd-default-rtdb.firebaseio.com/jarvis_state.json";
+        const FIREBASE_BASE_URL = "https://jarvis-70cfd-default-rtdb.firebaseio.com";
+        const FIREBASE_STATE_URL = `${FIREBASE_BASE_URL}/jarvis_state.json`;
+        const FIREBASE_NODE_URL = `${FIREBASE_BASE_URL}/jarvis_state/node.json`;
+
         const CLIENT_SESSION_ID = "client_" + Math.random().toString(36).slice(2, 10);
+        const SYSTEM_PW = "kakaku1221!@#";
+
         let isApplyingRemoteState = false;
         let lastHandledCommandTimestamp = 0;
-        let cloudNodeCache = null; // 클라우드에서 받아온 연산 기기 정보
-
-        const SYSTEM_PW = "kakaku1221!@#";
-        const STORAGE_NODE_KEY = "jarvis_registered_compute_node";
-        const STORAGE_SCHED_KEY = "jarvis_schedules_data";
+        let cloudNodeCache = null; // 오직 클라우드 DB를 기준으로 기기 정보 유지
 
         const ETOOS_ID = "hera47";
-        const ETOOS_PW = "@tnwls8911";
         const ETOOS_HOME_URL = "https://www.etoos.com/home/";
         const ETOOS_MYROOM_URL = "https://www.etoos.com/mystudyroom/";
         const EBSI_ID = "dera47";
-        const EBSI_PW = "@tnwls8911";
         const EBSI_LOGIN_URL = "https://www.ebsi.co.kr/ebs/pot/potl/login.ebs?alertYn=N";
 
         const ETOOS_COORDS = {
@@ -917,16 +932,14 @@
         let selectedDateFilter = null;
         let currentSequenceAbortController = null;
 
-        const defaultSchedules = [
+        let schedules = [
             { id: 1, date: "2026-11-13", time: "16:00", title: "로컬 LLM 모델 추론 테스트" },
             { id: 2, date: "2026-11-13", time: "20:00", title: "이투스 수강중 강좌 집중 학습 (공부 모드)" },
             { id: 3, date: "2026-11-16", time: "14:00", title: "JARVIS IoT 조명 모듈 점검" }
         ];
 
-        let schedules = JSON.parse(localStorage.getItem(STORAGE_SCHED_KEY)) || defaultSchedules;
-
         // =========================================================================
-        // 🌐 1. Firebase 클라우드 부분 업데이트(PATCH) 및 실시간 수신(GET) 함수
+        // 🌐 1. 클라우드 실시간 송수신 함수 (모든 기기가 동일한 데이터를 공유)
         // =========================================================================
         function setCloudBadge(status, text) {
             const dot = document.getElementById("cloud-sync-dot");
@@ -934,60 +947,56 @@
             if (!dot || !lbl) return;
             if (status === "ok") {
                 dot.className = "w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]";
-                lbl.innerText = text || "CLOUD DB: SYNCED";
-                lbl.className = "text-emerald-300";
+                lbl.innerText = text || "CLOUD DB: 실시간 연동 중";
+                lbl.className = "text-emerald-300 font-bold";
             } else if (status === "err") {
                 dot.className = "w-2 h-2 rounded-full bg-rose-500 animate-ping";
-                lbl.innerText = text || "CLOUD DB: RULES LOCKED (401)";
+                lbl.innerText = text || "CLOUD DB: 규칙(Rules) 잠김! .read/.write true 필요";
                 lbl.className = "text-rose-400 font-bold";
             } else {
                 dot.className = "w-2 h-2 rounded-full bg-amber-400";
-                lbl.innerText = text || "CLOUD DB: SYNCING...";
+                lbl.innerText = text || "CLOUD DB: 동기화 중...";
                 lbl.className = "text-amber-200";
             }
         }
 
-        // 핵심: PUT(전체 덮어쓰기)이 아닌 PATCH(변경된 필드만 병합)를 사용하여
-        // 다른 기기가 접속해도 기존에 등록된 node 정보를 절대 지우지 않도록 보호!
+        // 부분 업데이트(PATCH): 특정 상태만 클라우드에 갱신하여 기기 정보 유실 방지
         async function patchCloudState(partialObj) {
-            if (isApplyingRemoteState) return;
+            if (isApplyingRemoteState) return false;
             const payload = {
                 ...partialObj,
                 updatedBy: CLIENT_SESSION_ID,
                 updatedAt: Date.now()
             };
             try {
-                const res = await fetch(FIREBASE_DB_URL, {
+                const res = await fetch(FIREBASE_STATE_URL, {
                     method: "PATCH",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(payload)
                 });
                 if (res.ok) {
-                    setCloudBadge("ok", "CLOUD DB: SYNCED");
+                    setCloudBadge("ok", "CLOUD DB: 실시간 연동 중");
+                    return true;
                 } else {
-                    setCloudBadge("err", `CLOUD DB 에러 (${res.status} Rules 확인)`);
+                    setCloudBadge("err", `CLOUD DB 거부 (${res.status}): Firebase Rules를 true로 설정하세요`);
+                    return false;
                 }
             } catch (e) {
-                setCloudBadge("err", "CLOUD DB: 연결 실패");
+                setCloudBadge("err", "CLOUD DB: 네트워크 연결 실패");
+                return false;
             }
         }
 
-        async function pullStateFromCloud() {
+        // 클라우드에서 최신 데이터 가져오기 (모든 접속 기기 공통)
+        async function pullStateFromCloud(manualRefresh = false) {
             try {
-                const res = await fetch(FIREBASE_DB_URL + "?t=" + Date.now(), { cache: "no-store" });
+                const res = await fetch(`${FIREBASE_STATE_URL}?t=${Date.now()}`, { cache: "no-store" });
                 if (!res.ok) {
-                    setCloudBadge("err", `CLOUD DB 거부 (${res.status} Rules 확인)`);
+                    setCloudBadge("err", `CLOUD DB 거부 (${res.status}): Rules 확인 필요`);
                     return;
                 }
-                setCloudBadge("ok", "CLOUD DB: ONLINE");
+                setCloudBadge("ok", "CLOUD DB: 실시간 연동 중");
                 const data = await res.json();
-
-                // 만약 로컬 기기에 이미 등록된 PANEL 정보가 있는데 클라우드에만 아직 없다면 자동 재전송!
-                const localNode = JSON.parse(localStorage.getItem(STORAGE_NODE_KEY));
-                if ((!data || !data.node) && localNode && localNode.registered) {
-                    patchCloudState({ node: localNode });
-                    return;
-                }
 
                 if (!data) {
                     updateNodeUIEverywhere(null);
@@ -996,19 +1005,20 @@
 
                 isApplyingRemoteState = true;
                 try {
-                    // 1) 클라우드에 등록된 연산 기기(node)를 모든 화면에 즉시 반영
+                    // 1) 등록된 연산 기기(node) 표시 및 연결
                     if (data.node && data.node.registered) {
                         cloudNodeCache = data.node;
-                        localStorage.setItem(STORAGE_NODE_KEY, JSON.stringify(data.node));
                         updateNodeUIEverywhere(data.node);
+                        if (manualRefresh) {
+                            setJarvisMessage(`클라우드에서 연산 기기 [${data.node.deviceName}] 연결을 확인했습니다.`);
+                        }
                     } else {
-                        updateNodeUIEverywhere(localNode);
+                        updateNodeUIEverywhere(null);
                     }
 
                     // 2) 스케줄 동기화
                     if (Array.isArray(data.schedules)) {
                         schedules = data.schedules;
-                        localStorage.setItem(STORAGE_SCHED_KEY, JSON.stringify(schedules));
                         renderCalendar();
                         renderScheduleList();
                     }
@@ -1018,14 +1028,14 @@
                         toggleLightMode(true);
                     }
 
-                    // 4) 작업 모드 동기화
+                    // 4) 작업 모드 프리셋 동기화
                     if (data.currentActiveMode && data.currentActiveMode !== currentActiveMode && data.currentActiveMode !== "none") {
                         activateWorkspacePreset(data.currentActiveMode, null, true, true);
                     } else if (typeof data.isStudyActive === "boolean" && data.isStudyActive !== isStudyActive) {
                         toggleStudyMode(true);
                     }
 
-                    // 5) 원격 명령어 동기화
+                    // 5) 원격 명령 및 연결 테스트(Ping) 수신
                     if (data.remoteCmd && data.remoteCmd.ts && data.remoteCmd.ts > lastHandledCommandTimestamp) {
                         lastHandledCommandTimestamp = data.remoteCmd.ts;
                         if (data.updatedBy !== CLIENT_SESSION_ID) {
@@ -1035,6 +1045,8 @@
                                 runEtoosSmartLoginOnly(true);
                             } else if (data.remoteCmd.type === "ebsi") {
                                 runEbsiLoginSequence(true);
+                            } else if (data.remoteCmd.type === "ping") {
+                                setJarvisMessage(`🔗 원격 기기(${data.remoteCmd.from})로부터 연결 신호(Ping)가 수신되었습니다!`);
                             }
                         }
                     }
@@ -1042,24 +1054,24 @@
                     isApplyingRemoteState = false;
                 }
             } catch (e) {
-                setCloudBadge("err", "CLOUD DB: OFFLINE");
+                setCloudBadge("err", "CLOUD DB: 오프라인");
             }
         }
 
-        // 모든 화면(초기 로그인 화면 + USER 대시보드 우측 상단)의 기기 표시를 동시에 갱신
+        // 모든 화면의 연산 기기 상태 UI를 클라우드 데이터로 일괄 업데이트
         function updateNodeUIEverywhere(nodeData) {
-            const activeNode = nodeData || cloudNodeCache || JSON.parse(localStorage.getItem(STORAGE_NODE_KEY));
             const dot = document.getElementById("login-status-dot");
             const text = document.getElementById("login-status-text");
             const deviceDisplay = document.getElementById("compute-device-name");
             const badge = document.getElementById("node-badge");
             const telemetryLlm = document.getElementById("telemetry-llm");
+            const pingText = document.getElementById("node-ping-text");
 
-            if (activeNode && activeNode.registered) {
-                if (dot) dot.className = "w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]";
-                if (text) text.innerText = `등록된 로컬 LLM 연산 기기: ${activeNode.deviceName} (ONLINE)`;
+            if (nodeData && nodeData.registered) {
+                if (dot) dot.className = "w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399] shrink-0";
+                if (text) text.innerText = `${nodeData.deviceName} (연결 가능 · ONLINE)`;
                 if (deviceDisplay) {
-                    deviceDisplay.innerText = activeNode.deviceName;
+                    deviceDisplay.innerText = nodeData.deviceName;
                     deviceDisplay.className = "mt-1 text-sm sm:text-base font-bold text-cyan-300 truncate";
                 }
                 if (badge) {
@@ -1070,9 +1082,12 @@
                     telemetryLlm.innerText = "CONNECTED";
                     telemetryLlm.className = "font-mono-code text-emerald-400";
                 }
+                if (pingText) {
+                    pingText.innerText = `최근 등록: ${nodeData.registeredAt || "방금 전"}`;
+                }
             } else {
-                if (dot) dot.className = "w-2 h-2 rounded-full bg-amber-400";
-                if (text) text.innerText = "현재 등록된 로컬 LLM 연산 기기: 없음 (PANEL에서 등록 가능)";
+                if (dot) dot.className = "w-2.5 h-2.5 rounded-full bg-amber-400 shrink-0";
+                if (text) text.innerText = "미등록 (먼저 PANEL에서 기기를 등록하세요)";
                 if (deviceDisplay) {
                     deviceDisplay.innerText = "미등록 (PANEL 접속 필요)";
                     deviceDisplay.className = "mt-1 text-sm sm:text-base font-bold text-amber-300 truncate";
@@ -1085,11 +1100,174 @@
                     telemetryLlm.innerText = "NO NODE";
                     telemetryLlm.className = "font-mono-code text-amber-400";
                 }
+                if (pingText) {
+                    pingText.innerText = "연결된 연산 기기 없음";
+                }
+            }
+        }
+
+        // USER 대시보드에서 [기기 연결 확인] 클릭 시 원격 연산 기기와 양방향 신호 테스트
+        async function pingConnectedNode() {
+            await pullStateFromCloud(true);
+            if (cloudNodeCache && cloudNodeCache.registered) {
+                await patchCloudState({
+                    remoteCmd: { type: "ping", from: detectDeviceName(), ts: Date.now() }
+                });
+                document.getElementById("node-ping-text").innerText = "⚡ 양방향 원격 연결 정상 (응답 완료)";
+                setJarvisMessage(`연산 기기 [${cloudNodeCache.deviceName}]와(과) 실시간 원격 제어 채널이 연결되어 있습니다.`);
+            } else {
+                setJarvisMessage("아직 등록된 연산 기기가 없습니다. 연산 기기(PC)에서 PANEL 모드로 접속해 등록해 주세요.");
             }
         }
 
         // =========================================================================
-        // 🎵 2. 백색소음 합성 엔진 (WebWhiteNoiseSynthesizer)
+        // 🔐 2. PANEL 기기 등록 (Firebase 서버에 직접 PUT 저장)
+        // =========================================================================
+        function detectDeviceName() {
+            const ua = navigator.userAgent;
+            if (/Windows/i.test(ua)) return "Windows-LLM-PC #01";
+            if (/Macintosh|Mac OS/i.test(ua)) return "Mac-LLM-Node #01";
+            if (/Android/i.test(ua)) return "Galaxy-Edge-Node #01";
+            if (/iPhone|iPad/i.test(ua)) return "iOS-Edge-Node #01";
+            return "JARVIS-Compute-Node #01";
+        }
+
+        async function registerCurrentDeviceAsPanel() {
+            const nowStr = new Date().toLocaleString("ko-KR");
+            const nodeInfo = {
+                registered: true,
+                deviceName: (cloudNodeCache && cloudNodeCache.deviceName) ? cloudNodeCache.deviceName : detectDeviceName(),
+                registeredAt: nowStr
+            };
+            cloudNodeCache = nodeInfo;
+            updateNodeUIEverywhere(nodeInfo);
+
+            // Firebase의 /jarvis_state/node.json 경로에 직접 기록
+            try {
+                const res = await fetch(FIREBASE_NODE_URL, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(nodeInfo)
+                });
+                const statusEl = document.getElementById("panel-cloud-status");
+                if (res.ok) {
+                    setCloudBadge("ok", "CLOUD DB: 기기 등록 완료");
+                    if (statusEl) {
+                        statusEl.innerText = "✅ 클라우드 등록 완료 (모든 기기에서 연결 가능)";
+                        statusEl.className = "text-emerald-400 font-bold";
+                    }
+                } else {
+                    setCloudBadge("err", `CLOUD DB 에러 (${res.status})`);
+                    if (statusEl) {
+                        statusEl.innerText = `❌ 클라우드 저장 거부됨 (${res.status}) - Firebase Rules를 확인하세요`;
+                        statusEl.className = "text-rose-400 font-bold";
+                    }
+                }
+            } catch (e) {
+                setCloudBadge("err", "CLOUD DB: 전송 실패");
+            }
+        }
+
+        async function updateDeviceName() {
+            const newName = document.getElementById("custom-device-input").value.trim();
+            if (!newName) return;
+            const nodeInfo = {
+                registered: true,
+                deviceName: newName,
+                registeredAt: new Date().toLocaleString("ko-KR")
+            };
+            cloudNodeCache = nodeInfo;
+            document.getElementById("panel-device-name").innerText = nodeInfo.deviceName;
+            document.getElementById("panel-registered-time").innerText = nodeInfo.registeredAt;
+            updateNodeUIEverywhere(nodeInfo);
+
+            const ok = await patchCloudState({ node: nodeInfo });
+            const statusEl = document.getElementById("panel-cloud-status");
+            if (ok && statusEl) {
+                statusEl.innerText = `✅ [${newName}] 이름으로 클라우드 공유 완료!`;
+            }
+        }
+
+        function openAuthModal(role) {
+            pendingRole = role;
+            document.getElementById("modal-role-title").innerText = `${role} 모드 보안 인증`;
+            document.getElementById("password-input").value = "";
+            document.getElementById("auth-error-msg").innerText = "";
+            const modal = document.getElementById("auth-modal");
+            modal.classList.remove("hidden"); modal.classList.add("flex");
+            setTimeout(() => document.getElementById("password-input").focus(), 50);
+        }
+
+        function closeAuthModal() {
+            const modal = document.getElementById("auth-modal");
+            modal.classList.add("hidden"); modal.classList.remove("flex");
+        }
+
+        function fillDemoPassword() {
+            document.getElementById("password-input").value = SYSTEM_PW;
+        }
+
+        document.getElementById("password-input").addEventListener("keydown", (e) => {
+            if (e.key === "Enter") verifyPassword();
+        });
+
+        async function verifyPassword() {
+            const inputPw = document.getElementById("password-input").value;
+            if (inputPw !== SYSTEM_PW) {
+                document.getElementById("auth-error-msg").innerText = "비밀번호가 일치하지 않습니다.";
+                return;
+            }
+            closeAuthModal();
+            document.getElementById("login-screen").classList.add("hidden");
+
+            if (pendingRole === "PANEL") {
+                await registerCurrentDeviceAsPanel();
+                showPanelScreen();
+            } else if (pendingRole === "USER") {
+                await pullStateFromCloud(true);
+                showUserDashboard();
+            }
+        }
+
+        function showPanelScreen() {
+            const nodeInfo = cloudNodeCache || { deviceName: detectDeviceName(), registeredAt: new Date().toLocaleString("ko-KR") };
+            document.getElementById("panel-device-name").innerText = nodeInfo.deviceName;
+            document.getElementById("panel-registered-time").innerText = nodeInfo.registeredAt;
+            document.getElementById("custom-device-input").value = nodeInfo.deviceName;
+            const panel = document.getElementById("panel-screen");
+            panel.classList.remove("hidden"); panel.classList.add("flex");
+        }
+
+        async function switchToUserDirectly() {
+            document.getElementById("panel-screen").classList.add("hidden");
+            document.getElementById("panel-screen").classList.remove("flex");
+            await pullStateFromCloud(true);
+            showUserDashboard();
+        }
+
+        function logoutToHome() {
+            closeStudyingModeWindow();
+            document.getElementById("panel-screen").classList.add("hidden");
+            document.getElementById("panel-screen").classList.remove("flex");
+            document.getElementById("user-dashboard").classList.add("hidden");
+            document.getElementById("login-screen").classList.remove("hidden");
+            pullStateFromCloud();
+        }
+
+        function showUserDashboard() {
+            document.getElementById("user-dashboard").classList.remove("hidden");
+            updateNodeUIEverywhere(cloudNodeCache);
+            if (cloudNodeCache && cloudNodeCache.registered) {
+                setJarvisMessage(`연산 기기 [${cloudNodeCache.deviceName}]에 원격 연결되었습니다.`);
+            } else {
+                setJarvisMessage("등록된 연산 기기가 없습니다. 연산용 PC에서 PANEL 모드로 접속해 기기를 등록하세요.");
+            }
+            renderCalendar();
+            renderScheduleList();
+        }
+
+        // =========================================================================
+        // 🎵 3. 백색소음 합성기 및 studyingmode.py 기능 모듈
         // =========================================================================
         class WebWhiteNoiseSynthesizer {
             constructor() {
@@ -1256,9 +1434,6 @@
             }
         }
 
-        // =========================================================================
-        // 🪟 3. 화면 분할 & 밝기 & 이투스 시퀀스
-        // =========================================================================
         function arrangeWindowsSplit(layout = "side_by_side", keywords = []) {
             const preview = document.getElementById("mini-split-preview");
             const telSplit = document.getElementById("telemetry-split");
@@ -1355,7 +1530,7 @@
                             await sleepAbortable(ETOOS_DELAYS.BEFORE_LOGIN_SUBMIT, signal);
                         } else {
                             moveVirtualCursor(ETOOS_COORDS.LOGIN_ID_INPUT);
-                            appendEtoosLog(`ID(hera47) 입력 ➔ ESC로 추천 로그인창 닫기`, "text-white");
+                            appendEtoosLog(`ID(${ETOOS_ID}) 입력 ➔ ESC로 추천 로그인창 닫기`, "text-white");
                             await sleepAbortable(0.7, signal);
                             moveVirtualCursor(ETOOS_COORDS.LOGIN_PW_INPUT);
                             appendEtoosLog(`🎯 좌측 보정 PW칸(0.3800, 0.4906 / 389, 314) 클릭 후 PW 입력`, "text-emerald-300 font-bold");
@@ -1500,120 +1675,6 @@
             const lbl = document.getElementById("popup-lbl-feedback");
             if (lbl) { lbl.style.color = colorHex; lbl.innerText = text; }
         }
-
-        // =========================================================================
-        // 🔐 4. PANEL 기기 등록 (함수 본체에서 직접 Firebase PATCH 호출!)
-        // =========================================================================
-        function openAuthModal(role) {
-            pendingRole = role;
-            document.getElementById("modal-role-title").innerText = `${role} 모드 보안 인증`;
-            document.getElementById("password-input").value = "";
-            document.getElementById("auth-error-msg").innerText = "";
-            const modal = document.getElementById("auth-modal");
-            modal.classList.remove("hidden"); modal.classList.add("flex");
-            setTimeout(() => document.getElementById("password-input").focus(), 50);
-        }
-        function closeAuthModal() {
-            const modal = document.getElementById("auth-modal");
-            modal.classList.add("hidden"); modal.classList.remove("flex");
-        }
-        function fillDemoPassword() {
-            document.getElementById("password-input").value = SYSTEM_PW;
-        }
-        document.getElementById("password-input").addEventListener("keydown", (e) => {
-            if (e.key === "Enter") verifyPassword();
-        });
-
-        async function verifyPassword() {
-            const inputPw = document.getElementById("password-input").value;
-            if (inputPw !== SYSTEM_PW) {
-                document.getElementById("auth-error-msg").innerText = "비밀번호가 일치하지 않습니다.";
-                return;
-            }
-            closeAuthModal();
-            document.getElementById("login-screen").classList.add("hidden");
-
-            if (pendingRole === "PANEL") {
-                await registerCurrentDeviceAsPanel();
-                showPanelScreen();
-            } else if (pendingRole === "USER") {
-                await pullStateFromCloud();
-                showUserDashboard();
-            }
-        }
-
-        function detectDeviceName() {
-            const ua = navigator.userAgent;
-            if (/Windows/i.test(ua)) return "Windows-LLM-Node #01";
-            if (/Mac/i.test(ua)) return "Mac-LLM-Node #01";
-            if (/Android|iPhone|iPad/i.test(ua)) return "Mobile-Edge-Node #01";
-            return "Desktop-LLM-Node #01";
-        }
-
-        // PANEL 접속 즉시 로컬 저장 + Firebase 클라우드에 직접 PATCH 업로드!
-        async function registerCurrentDeviceAsPanel() {
-            const existing = cloudNodeCache || JSON.parse(localStorage.getItem(STORAGE_NODE_KEY));
-            const nowStr = new Date().toLocaleString("ko-KR");
-            const nodeInfo = {
-                registered: true,
-                deviceName: (existing && existing.deviceName) ? existing.deviceName : detectDeviceName(),
-                registeredAt: nowStr
-            };
-            cloudNodeCache = nodeInfo;
-            localStorage.setItem(STORAGE_NODE_KEY, JSON.stringify(nodeInfo));
-            updateNodeUIEverywhere(nodeInfo);
-            await patchCloudState({ node: nodeInfo });
-        }
-
-        function showPanelScreen() {
-            const nodeInfo = cloudNodeCache || JSON.parse(localStorage.getItem(STORAGE_NODE_KEY));
-            document.getElementById("panel-device-name").innerText = nodeInfo.deviceName;
-            document.getElementById("panel-registered-time").innerText = nodeInfo.registeredAt;
-            document.getElementById("custom-device-input").value = nodeInfo.deviceName;
-            const panel = document.getElementById("panel-screen");
-            panel.classList.remove("hidden"); panel.classList.add("flex");
-        }
-
-        async function updateDeviceName() {
-            const newName = document.getElementById("custom-device-input").value.trim();
-            if (!newName) return;
-            const nodeInfo = {
-                registered: true,
-                deviceName: newName,
-                registeredAt: new Date().toLocaleString("ko-KR")
-            };
-            cloudNodeCache = nodeInfo;
-            localStorage.setItem(STORAGE_NODE_KEY, JSON.stringify(nodeInfo));
-            document.getElementById("panel-device-name").innerText = nodeInfo.deviceName;
-            document.getElementById("panel-registered-time").innerText = nodeInfo.registeredAt;
-            updateNodeUIEverywhere(nodeInfo);
-            await patchCloudState({ node: nodeInfo });
-            document.getElementById("panel-cloud-status").innerText = "✅ 클라우드 동기화 완료 (" + newName + ")";
-        }
-
-        async function switchToUserDirectly() {
-            document.getElementById("panel-screen").classList.add("hidden");
-            document.getElementById("panel-screen").classList.remove("flex");
-            await pullStateFromCloud();
-            showUserDashboard();
-        }
-
-        function logoutToHome() {
-            closeStudyingModeWindow();
-            document.getElementById("panel-screen").classList.add("hidden");
-            document.getElementById("panel-screen").classList.remove("flex");
-            document.getElementById("user-dashboard").classList.add("hidden");
-            document.getElementById("login-screen").classList.remove("hidden");
-            pullStateFromCloud();
-        }
-
-        function showUserDashboard() {
-            document.getElementById("user-dashboard").classList.remove("hidden");
-            updateNodeUIEverywhere(cloudNodeCache);
-            renderCalendar();
-            renderScheduleList();
-        }
-
         function setJarvisMessage(msg) {
             const el = document.getElementById("jarvis-message");
             if (el) el.innerText = msg;
@@ -1728,7 +1789,6 @@
             const titleVal = document.getElementById("new-sched-title").value.trim();
             if (!dateVal || !titleVal) return;
             schedules.push({ id: Date.now(), date: dateVal, time: timeVal || "09:00", title: titleVal });
-            localStorage.setItem(STORAGE_SCHED_KEY, JSON.stringify(schedules));
             document.getElementById("new-sched-title").value = "";
             document.getElementById("add-schedule-form").classList.add("hidden");
             renderCalendar(); renderScheduleList();
@@ -1737,7 +1797,6 @@
 
         function deleteScheduleItem(id) {
             schedules = schedules.filter(s => s.id !== id);
-            localStorage.setItem(STORAGE_SCHED_KEY, JSON.stringify(schedules));
             renderCalendar(); renderScheduleList();
             patchCloudState({ schedules: schedules });
         }
@@ -1750,11 +1809,12 @@
             update(); setInterval(update, 1000);
         }
 
+        // 페이지 로드 즉시 클라우드에서 등록 기기 정보를 조회하고 1.2초마다 실시간 동기화
         window.addEventListener("DOMContentLoaded", () => {
             startClock();
             ambientEngine._clearVisualizer();
             pullStateFromCloud();
-            setInterval(pullStateFromCloud, 1200);
+            setInterval(() => pullStateFromCloud(false), 1200);
         });
     </script>
 </body>
