@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>J.A.R.V.I.S. v10.0 // Semantic Navigator + Always-On Whisper + Router</title>
+    <title>J.A.R.V.I.S. v11.0 // Home-First Semantic Navigator + Whisper VAD + Router</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Noto+Sans+KR:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
@@ -148,10 +148,6 @@
         @keyframes spin-cw { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         @keyframes pulse-core { 0%, 100% { transform: scale(1); opacity: 0.85; } 50% { transform: scale(1.04); opacity: 1; } }
 
-        #semantic-scanner-beam {
-            transition: all 0.38s cubic-bezier(0.22, 1, 0.36, 1);
-        }
-
         ::-webkit-scrollbar { width: 5px; height: 5px; }
         ::-webkit-scrollbar-track { background: rgba(2, 6, 13, 0.7); }
         ::-webkit-scrollbar-thumb { background: rgba(0, 242, 255, 0.45); border-radius: 3px; }
@@ -161,7 +157,7 @@
     <div id="brightness-overlay"></div>
     <div class="hud-grid"></div>
 
-    <!-- 상단 고정 클라우드 & 상시 마이크(VAD) 상태 바 -->
+    <!-- 우측 상단 고정 클라우드 & 상시 마이크(VAD) 배지 -->
     <div class="fixed top-2 right-2 z-50 flex items-center gap-2">
         <div class="px-2.5 py-1 rounded bg-[#030914]/95 border border-emerald-500/40 text-[10px] font-mono-code flex items-center gap-1.5">
             <span id="vad-indicator-dot" class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
@@ -177,13 +173,13 @@
     <section id="login-screen" class="relative z-10 flex flex-col items-center justify-center min-h-screen px-4">
         <div class="text-center mb-8">
             <div class="inline-block px-3 py-1 mb-3 text-xs tracking-[0.25em] border border-cyan-400/40 rounded-full text-cyan-300 bg-cyan-950/30">
-                SEMANTIC DOM NAVIGATOR // WHISPER VAD // INTENT ROUTER
+                HOME-FIRST SEMANTIC NAVIGATOR // WHISPER VAD // INTENT ROUTER
             </div>
             <h1 class="font-orbitron text-4xl sm:text-6xl font-black tracking-[0.22em] neon-text">
                 J.A.R.V.I.S.
             </h1>
             <p class="mt-2 text-xs sm:text-sm text-cyan-200/70">
-                UI 불변 화면 분석 엔진 · 상시 음성 감지(Whisper) · 일상 대화 라우터 통합 시스템
+                이투스 홈페이지 선행 진입(404 원천 차단) · 시맨틱 광고 제거 · 상시 음성 대화 라우터
             </p>
         </div>
 
@@ -225,7 +221,7 @@
             <div id="auth-error-msg" class="text-xs text-rose-400 h-4 mb-3"></div>
             <div class="flex gap-2">
                 <button onclick="fillDemoPassword()" type="button" class="px-3 py-2.5 rounded border border-cyan-500/30 text-xs text-cyan-300/80 hover:bg-cyan-950/60 cursor-pointer">자동입력</button>
-                <button onclick="verifyPassword()" type="button" class="flex-1 py-2.5 rounded bg-cyan-400 text-[#02060d] font-bold text-sm hover:bg-cyan-300 cursor-pointer">인증 및 접속 (마이크 자동 활성화)</button>
+                <button onclick="verifyPassword()" type="button" class="flex-1 py-2.5 rounded bg-cyan-400 text-[#02060d] font-bold text-sm hover:bg-cyan-300 cursor-pointer">인증 및 접속 (상시 마이크 ON)</button>
             </div>
         </div>
     </div>
@@ -259,23 +255,20 @@
 
     <!-- 3. USER 메인 대시보드 -->
     <main id="user-dashboard" class="relative z-10 hidden min-h-screen w-full p-3 lg:p-5 flex flex-col justify-between">
-        <!-- 상단 헤더 -->
         <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mt-6 sm:mt-0">
             <div class="flex items-center gap-3">
                 <div class="w-3 h-3 rounded-full bg-cyan-400 shadow-[0_0_10px_#00f2ff]"></div>
                 <div>
-                    <h1 class="font-orbitron text-lg sm:text-xl font-bold tracking-[0.18em] neon-text">J.A.R.V.I.S. v10.0</h1>
-                    <p class="text-[11px] text-cyan-300/70">SEMANTIC DOM AGENT · ALWAYS-ON WHISPER · INTENT ROUTER</p>
+                    <h1 class="font-orbitron text-lg sm:text-xl font-bold tracking-[0.18em] neon-text">J.A.R.V.I.S. v11.0</h1>
+                    <p class="text-[11px] text-cyan-300/70">HOME-FIRST SEMANTIC AGENT · ALWAYS-ON WHISPER · ROUTER</p>
                 </div>
             </div>
 
             <div class="flex flex-wrap items-center gap-2 self-end sm:self-auto">
-                <!-- Whisper / LLM API 키 설정 버튼 -->
                 <button onclick="openApiConfigModal()" class="hud-panel px-3 py-2 rounded-lg text-xs text-cyan-200 hover:border-cyan-300 flex items-center gap-1.5 cursor-pointer">
                     <span>⚙️</span>
                     <span>Whisper &amp; LLM 엔진 설정</span>
                 </button>
-                <!-- 우측 상단 연산 기기 표시 -->
                 <div class="hud-panel px-3.5 py-2 rounded-lg min-w-[240px]">
                     <div class="flex items-center justify-between gap-2">
                         <span class="text-[10px] tracking-wider text-cyan-300/80 uppercase">연산 기기 (Local LLM)</span>
@@ -289,18 +282,18 @@
         <!-- 중단 메인 그리드 -->
         <div class="my-3 grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch flex-1">
             
-            <!-- 좌측 (3칸): 원클릭 모드 & 시맨틱 이투스 실행기 -->
+            <!-- 좌측 (3칸): 원클릭 모드 & 홈페이지 선행 시맨틱 실행기 -->
             <aside class="lg:col-span-3 flex flex-col justify-between gap-3">
                 <div class="hud-panel p-3.5 rounded-xl space-y-2.5">
                     <div class="flex items-center justify-between border-b border-cyan-500/30 pb-1.5">
-                        <span class="font-orbitron text-xs tracking-wider text-cyan-300 font-bold">SEMANTIC MODES</span>
-                        <span class="text-[10px] text-emerald-300 font-mono-code">NO-COORD v10</span>
+                        <span class="font-orbitron text-xs tracking-wider text-cyan-300 font-bold">HOME-FIRST MODES</span>
+                        <span class="text-[10px] text-emerald-300 font-mono-code">404-FREE v11</span>
                     </div>
 
                     <button id="btn-study-mode" onclick="toggleStudyMode()" class="mode-btn w-full p-3 rounded-lg flex items-center justify-between text-left cursor-pointer">
                         <div>
-                            <div class="font-bold text-sm text-white">📚 공부 모드 (시맨틱 직행)</div>
-                            <div id="study-timer-text" class="text-[11px] text-cyan-300/75 mt-0.5">UI 분석 ➔ 광고차단 ➔ 수강중강좌</div>
+                            <div class="font-bold text-sm text-white">📚 공부 모드 (홈 ➔ 로그인)</div>
+                            <div id="study-timer-text" class="text-[11px] text-cyan-300/75 mt-0.5">이투스 홈 ➔ 마이룸 ➔ 수강중강좌</div>
                         </div>
                         <span id="badge-study" class="font-orbitron text-xs px-2 py-1 rounded border border-cyan-400/50 text-cyan-300">OFF</span>
                     </button>
@@ -310,7 +303,7 @@
                             ◈ 시맨틱 분석창
                         </button>
                         <button onclick="runEtoosSmartLoginOnly()" class="py-2 px-2 rounded bg-[#0b2c4d] hover:bg-cyan-400 hover:text-slate-950 border border-cyan-400/60 text-[11px] font-bold text-cyan-200 cursor-pointer">
-                            🎓 이투스 수강중 강좌
+                            🎓 이투스 홈 ➔ 강좌
                         </button>
                     </div>
 
@@ -330,7 +323,6 @@
                         <span id="badge-schedule" class="font-orbitron text-xs px-2 py-1 rounded border border-cyan-400 text-cyan-200 bg-cyan-400/20">ON</span>
                     </button>
 
-                    <!-- 백색소음 컨트롤 -->
                     <div class="pt-2 border-t border-cyan-500/30 flex items-center justify-between text-xs">
                         <span id="mini-noise-label" class="text-[11px] text-cyan-200/80">🔇 백색소음: 정지</span>
                         <div class="flex gap-1">
@@ -343,9 +335,8 @@
                 </div>
             </aside>
 
-            <!-- 중앙 (6칸): 상시 마이크(VAD) 비주얼라이저 + Intent Router & 실시간 대화창 -->
+            <!-- 중앙 (6칸): 상시 마이크(VAD) + Intent Router 대화창 -->
             <section class="lg:col-span-6 flex flex-col justify-between hud-panel p-4 rounded-xl">
-                <!-- 상단: 미니 코어 + 상시 VAD 데시벨 미터 -->
                 <div class="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-cyan-500/30 pb-3">
                     <div class="flex items-center gap-3">
                         <div id="reactor-container" onclick="openStudyingModeWindow()" class="reactor-wrapper !w-20 !h-20 cursor-pointer shrink-0">
@@ -364,41 +355,39 @@
                                 </span>
                             </div>
                             <p id="jarvis-message" class="text-xs text-cyan-100 mt-1">
-                                버튼을 누르지 않고 그냥 말씀하시면 자동으로 듣고 Whisper STT ➔ LLM이 응답합니다.
+                                상시 음성 감지가 작동 중입니다. 작업 명령이나 일상 대화를 편하게 말씀하세요.
                             </p>
                         </div>
                     </div>
 
-                    <!-- 상시 Listening (VAD) 오디오 파형 & 토글 -->
                     <div class="flex flex-col items-end gap-1 shrink-0 w-full sm:w-44">
                         <div class="flex items-center justify-between w-full text-[10px] font-mono-code">
                             <span id="vad-state-label" class="text-emerald-300 font-bold">🎙️ 상시 감지 켜짐</span>
-                            <button id="btn-toggle-always-mic" onclick="toggleAlwaysOnMic()" class="px-2 py-0.5 rounded bg-emerald-500/20 border border-emerald-400 text-emerald-200 hover:bg-emerald-400 hover:text-slate-950 transition cursor-pointer">
+                            <button id="btn-toggle-always-mic" onclick="toggleAlwaysOnMic()" class="px-2 py-0.5 rounded bg-emerald-500/20 border border-emerald-400 text-emerald-200 cursor-pointer">
                                 ON
                             </button>
                         </div>
                         <canvas id="vad-meter-canvas" width="170" height="24" class="w-full h-6 rounded bg-[#02060d] border border-cyan-500/40"></canvas>
-                        <div class="text-[9px] text-cyan-400/70 font-mono-code">VAD 데시벨 감지 ➔ Whisper 자동 변환</div>
+                        <div class="text-[9px] text-cyan-400/70 font-mono-code">VAD 음성 감지 ➔ Whisper STT ➔ LLM</div>
                     </div>
                 </div>
 
-                <!-- 중단: J.A.R.V.I.S. 대화 & 제어 로그 스트림 (일반 대화 + 시스템 제어 결과 통합) -->
+                <!-- 대화 및 제어 로그 스트림 -->
                 <div id="chat-stream-box" class="my-3 h-52 sm:h-60 overflow-y-auto space-y-2.5 pr-1 text-xs">
                     <div class="flex items-start gap-2">
                         <span class="px-2 py-0.5 rounded bg-cyan-500/20 border border-cyan-400/50 text-cyan-300 font-mono-code text-[10px] shrink-0">JARVIS</span>
                         <div class="bg-[#030b18] border border-cyan-500/30 rounded-lg p-2.5 text-cyan-100 leading-relaxed">
-                            반갑습니다. <b>상시 음성 감지(Always-On Listening)</b>가 활성화되어 있습니다.<br>
-                            • <b>작업 제어</b>: "공부 모드 켜줘", "이투스 수강중 강좌 틀어줘", "빗소리 틀어줘"<br>
-                            • <b>일상 대화</b>: "오늘 수능 응원 문구 추천해줘", "파이썬 비동기 원리 설명해줘" 등 무엇이든 편하게 말씀하세요.
+                            이투스 직접 로그인 진입 시 발생하던 <b>404 에러("요청하신 페이지를 찾을 수 없습니다")</b>를 해결하기 위해 <b>무조건 이투스 공식 홈페이지(etoos.com/home/)로 먼저 접속한 뒤 시맨틱 버튼 클릭으로 이동</b>하도록 수정되었습니다.<br>
+                            • <b>제어 명령 예시</b>: "공부 모드 켜줘", "이투스 열어줘", "빗소리 틀어줘"<br>
+                            • <b>일상 대화 예시</b>: "오늘 날씨에 어울리는 저녁 메뉴 추천해줘"
                         </div>
                     </div>
                 </div>
 
-                <!-- 하단: 텍스트/음성 겸용 입력창 -->
                 <div class="flex items-center gap-2 pt-2 border-t border-cyan-500/30">
-                    <span id="live-stt-preview" class="hidden text-[11px] text-emerald-300 font-mono-code animate-pulse">🎙️ 음성 인식 중...</span>
+                    <span id="live-stt-preview" class="hidden text-[11px] text-emerald-300 font-mono-code animate-pulse">🎙️ 인식 중...</span>
                     <input id="jarvis-command-input" type="text"
-                        placeholder="여기에 입력하거나 그냥 마이크로 말씀하세요 (자동 Router 분기)..."
+                        placeholder="여기에 입력하거나 그냥 마이크로 말씀하세요 (제어/대화 자동 Router 분기)..."
                         class="flex-1 bg-[#030812] border border-cyan-500/40 rounded-lg px-3 py-2 text-xs text-white placeholder-cyan-400/45 focus:outline-none focus:border-cyan-300">
                     <button onclick="executeVoiceOrTextCommand()" type="button"
                         class="px-4 py-2 rounded-lg bg-cyan-400 text-slate-950 font-bold text-xs hover:bg-cyan-300 transition shrink-0 cursor-pointer">
@@ -407,7 +396,7 @@
                 </div>
             </section>
 
-            <!-- 우측 (3칸): 텔레메트리 & 시맨틱 보호 상태 -->
+            <!-- 우측 (3칸): 시맨틱 텔레메트리 -->
             <div class="lg:col-span-3 flex flex-col justify-between gap-3">
                 <div class="hud-panel p-3.5 rounded-xl space-y-2">
                     <div class="flex items-center justify-between border-b border-cyan-500/30 pb-1.5">
@@ -415,52 +404,52 @@
                         <span id="telemetry-active-preset" class="text-[10px] px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-mono-code">MODE: NONE</span>
                     </div>
                     <div class="text-xs text-cyan-200/80 flex justify-between">
-                        <span>네비게이션 방식</span>
-                        <span class="font-mono-code text-emerald-300 font-bold">DOM + 레이어분석</span>
+                        <span>초기 진입 경로</span>
+                        <span class="font-mono-code text-emerald-300 font-bold">etoos.com/home/ 고정</span>
                     </div>
                     <div class="text-xs text-cyan-200/80 flex justify-between">
-                        <span>광고 오클릭 방지</span>
-                        <span id="telemetry-adblock" class="font-mono-code text-cyan-300">ACTIVE (z-index 가드)</span>
+                        <span>404 에러 복구 가드</span>
+                        <span class="font-mono-code text-cyan-300">ACTIVE (자동 홈 복귀)</span>
                     </div>
                     <div class="text-xs text-cyan-200/80 flex justify-between">
-                        <span>음성 STT 엔진</span>
-                        <span id="telemetry-stt-engine" class="font-mono-code text-amber-300">Whisper + WebVAD</span>
+                        <span>광고 오클릭 차단</span>
+                        <span class="font-mono-code text-emerald-300">elementFromPoint 가드</span>
+                    </div>
+                    <div class="text-xs text-cyan-200/80 flex justify-between">
+                        <span>음성 STT 파이프라인</span>
+                        <span class="font-mono-code text-amber-300">VAD ➔ Whisper ➔ LLM</span>
                     </div>
                     <div class="text-xs text-cyan-200/80 flex justify-between">
                         <span>현재 시각</span>
-                        <span id="telemetry-clock" class="font-mono-code text-white">20:13:00</span>
-                    </div>
-                    <div class="text-xs text-cyan-200/80 flex justify-between">
-                        <span>창 분할 레이아웃</span>
-                        <span id="telemetry-split" class="font-mono-code text-emerald-300">DEFAULT</span>
+                        <span id="telemetry-clock" class="font-mono-code text-white">20:23:00</span>
                     </div>
 
                     <div class="pt-1">
                         <div class="text-[10px] text-cyan-400/70 mb-1 flex justify-between">
-                            <span>WINDOW LAYOUT</span>
-                            <span id="split-layout-badge" class="font-mono-code">RESPONSIVE</span>
+                            <span>ENTRY ROUTE GUARANTEE</span>
+                            <span class="font-mono-code text-emerald-300">NO DIRECT LOGIN URL</span>
                         </div>
-                        <div id="mini-split-preview" class="h-11 w-full rounded bg-[#030812] border border-cyan-500/40 p-1 flex gap-1">
-                            <div class="flex-1 rounded bg-cyan-500/20 border border-cyan-400/50 flex items-center justify-center text-[10px] text-cyan-200 font-mono-code">
-                                SEMANTIC VIEWPORT
-                            </div>
+                        <div class="p-2 rounded bg-[#030812] border border-cyan-500/40 text-[10px] font-mono-code text-cyan-200 space-y-0.5">
+                            <div>1. etoos.com/home/ 접속</div>
+                            <div>2. [로그인] 시맨틱 클릭 (비로그인 시)</div>
+                            <div>3. [마이룸] ➔ [팝업X] ➔ [수강중강좌]</div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- 하단 푸터: 스케줄 캘린더 & 작업 모드 팝업 버튼 -->
+        <!-- 하단 푸터 -->
         <footer class="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-4 mt-1">
             <div id="schedule-calendar-panel" class="hud-panel w-full lg:w-[410px] p-3.5 rounded-xl">
                 <div class="flex items-center justify-between mb-2">
-                    <span class="font-orbitron text-xs font-bold text-cyan-300" id="calendar-month-label">2026년 11월 SCHEDULE</span>
-                    <button onclick="toggleAddScheduleForm()" class="text-xs px-2 py-0.5 rounded bg-cyan-400/20 border border-cyan-400/60 text-cyan-200 hover:bg-cyan-400 hover:text-slate-950 cursor-pointer">+ 일정 추가</button>
+                    <span class="font-orbitron text-xs font-bold text-cyan-300">2026년 11월 SCHEDULE</span>
+                    <button onclick="toggleAddScheduleForm()" class="text-xs px-2 py-0.5 rounded bg-cyan-400/20 border border-cyan-400/60 text-cyan-200 cursor-pointer">+ 일정 추가</button>
                 </div>
                 <div id="add-schedule-form" class="hidden mb-2 p-2 rounded bg-[#030812] border border-cyan-500/40 space-y-1.5">
                     <div class="flex gap-2">
                         <input type="date" id="new-sched-date" value="2026-11-13" class="w-1/2 px-2 py-1 rounded bg-slate-900 border border-cyan-500/40 text-xs text-white">
-                        <input type="time" id="new-sched-time" value="20:00" class="w-1/2 px-2 py-1 rounded bg-slate-900 border border-cyan-500/40 text-xs text-white">
+                        <input type="time" id="new-sched-time" value="20:30" class="w-1/2 px-2 py-1 rounded bg-slate-900 border border-cyan-500/40 text-xs text-white">
                     </div>
                     <div class="flex gap-2">
                         <input type="text" id="new-sched-title" placeholder="일정 내용..." class="flex-1 px-2 py-1 rounded bg-slate-900 border border-cyan-500/40 text-xs text-white">
@@ -473,9 +462,9 @@
 
             <div class="self-end flex flex-wrap gap-2">
                 <button onclick="openStudyingModeWindow()" class="px-4 py-2 rounded-lg border border-cyan-400 bg-cyan-500/20 text-xs font-bold text-cyan-200 hover:bg-cyan-400 hover:text-slate-950 transition cursor-pointer">
-                    ◈ 시맨틱 작업 모드 분석창 열기
+                    ◈ 시맨틱 작업 모드 제어창 열기
                 </button>
-                <button onclick="logoutToHome()" class="px-4 py-2 rounded-lg border border-cyan-500/40 bg-[#061428]/80 text-xs text-cyan-300 hover:border-cyan-300 cursor-pointer">
+                <button onclick="logoutToHome()" class="px-4 py-2 rounded-lg border border-cyan-500/40 bg-[#061428]/80 text-xs text-cyan-300 cursor-pointer">
                     ⇄ 모드 전환 (USER · PANEL)
                 </button>
             </div>
@@ -483,44 +472,39 @@
     </main>
 
     <!-- ========================================================================= -->
-    <!-- 🖥️ 4. 시맨틱 화면 분석 & 작업 모드 팝업 (고정 좌표 폐기 -> DOM/레이어 분석기) -->
+    <!-- 🖥️ 4. 시맨틱 화면 분석 & 작업 모드 팝업 (홈페이지 선행 진입 + 404 복구 + 광고 차단) -->
     <!-- ========================================================================= -->
     <div id="studying-mode-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 backdrop-blur-md p-2 sm:p-4 overflow-y-auto">
         <div class="w-full max-w-5xl bg-[#02060d] border-2 border-[#00f2ff] rounded-xl shadow-[0_0_45px_rgba(0,242,255,0.3)] overflow-hidden my-auto">
             <div class="bg-[#041328] border-b border-[#00f2ff] px-4 py-2.5 flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                    <span class="text-[#00f2ff] font-bold text-sm sm:text-base">◈ 시맨틱 화면 분석 네비게이터 (UI·기기 불변 &amp; 광고 오클릭 원천 차단)</span>
-                </div>
+                <span class="text-[#00f2ff] font-bold text-sm sm:text-base">◈ Home-First 시맨틱 네비게이터 (이투스 홈 ➔ 로그인 ➔ 마이룸 ➔ 광고차단 ➔ 수강중 강좌)</span>
                 <button onclick="closeStudyingModeWindow()" class="bg-[#2a0c18] hover:bg-[#ff3b5c] text-[#ff3b5c] hover:text-white font-bold text-xs px-3 py-1.5 rounded cursor-pointer">✕ 닫기</button>
             </div>
 
             <div class="px-4 py-2 bg-[#02060d] border-b border-cyan-900/60 flex flex-wrap items-center justify-between gap-2">
                 <div id="popup-lbl-feedback" class="text-xs sm:text-sm font-bold text-[#00ffaa]">
-                    ● 대기 (화면 DOM 구조와 z-index 레이어를 분석해 광고를 피하고 정확한 버튼만 타격합니다)
+                    ● 대기 (직접 로그인 URL로 가지 않고 무조건 https://www.etoos.com/home/ 으로 먼저 접속합니다)
                 </div>
-                <span id="popup-active-mode-indicator" class="text-[11px] font-mono-code text-amber-300">NAVIGATION: SEMANTIC DOM + LAYER GUARD</span>
+                <span class="text-[11px] font-mono-code text-amber-300">ENTRY: https://www.etoos.com/home/</span>
             </div>
 
             <div class="p-4 grid grid-cols-1 lg:grid-cols-12 gap-4">
-                <!-- 좌측 (6칸): 4대 프리셋 + 모바일/태블릿/PC 겸용 시맨틱 실행 -->
+                <!-- 좌측 (6칸) -->
                 <div class="lg:col-span-6 flex flex-col justify-between space-y-3">
                     <div class="bg-[#051020] border border-[#00f2ff] rounded-lg p-2.5 space-y-2">
                         <div class="flex flex-col sm:flex-row gap-2">
                             <button onclick="runEtoosSmartLoginOnly()" class="flex-1 bg-[#0b2c4d] hover:bg-[#00f2ff] text-[#00f2ff] hover:text-[#02060d] font-bold text-xs py-2.5 px-3 rounded transition cursor-pointer">
-                                🎓 이투스 시맨틱 직행 (로그인 ➔ 마이룸 ➔ 광고차단 ➔ 수강중 강좌)
+                                🎓 이투스 홈페이지 접속 ➔ 시맨틱 수강중 강좌 진입
                             </button>
                             <button onclick="runEbsiLoginSequence()" class="bg-[#081d36] hover:bg-emerald-400 text-emerald-300 hover:text-slate-950 border border-emerald-400/50 font-bold text-xs py-2.5 px-3 rounded cursor-pointer">
-                                📗 EBSi 시맨틱 로그인
+                                📗 EBSi 홈페이지 접속
                             </button>
                         </div>
                         <div class="flex items-center justify-between text-[11px] text-cyan-300 pt-1 border-t border-cyan-900/60">
                             <label class="flex items-center gap-1.5 cursor-pointer">
                                 <input type="checkbox" id="chk-open-real-tab" checked class="accent-cyan-400">
-                                <span>실제 이투스 사이트 새 탭으로 열기 (스마트 딥링크 적용)</span>
+                                <span>실제 새 탭 열기 (무조건 <b>etoos.com/home/</b> 으로 안전 진입)</span>
                             </label>
-                            <button onclick="copyMobileSemanticBookmarklet()" class="px-2 py-0.5 rounded bg-cyan-500/20 border border-cyan-400 text-[10px] text-cyan-200 hover:bg-cyan-400 hover:text-slate-950 cursor-pointer">
-                                📱 모바일/브라우저 자동주입 코드 복사
-                            </button>
                         </div>
                     </div>
 
@@ -528,7 +512,7 @@
                         <div class="bg-[#051020] border border-[#00f2ff] rounded-lg p-3 flex flex-col justify-between">
                             <div>
                                 <div class="text-[#00f2ff] font-bold text-xs">📚 공부 모드</div>
-                                <p class="text-[11px] text-cyan-100 mt-1">이투스 수강중강좌 · 브라운노이즈</p>
+                                <p class="text-[11px] text-cyan-100 mt-1">이투스 홈 ➔ 수강중강좌 · 브라운</p>
                             </div>
                             <button onclick="activateWorkspacePreset('study')" class="mt-2.5 w-full bg-[#00f2ff] text-[#02060d] font-bold text-xs py-1.5 rounded cursor-pointer">⚡ 공부 시작</button>
                         </div>
@@ -566,79 +550,73 @@
                     </div>
                 </div>
 
-                <!-- 우측 (6칸): 환경변수(기기/로그인/광고유무) 시뮬레이션 & 실시간 DOM/레이어 스캐너 -->
+                <!-- 우측 (6칸): 환경변수 & 404 복구 & 광고 오클릭 차단 시뮬레이터 -->
                 <div class="lg:col-span-6 bg-[#051020] border border-cyan-500/50 rounded-lg p-3.5 flex flex-col justify-between space-y-2.5">
-                    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-cyan-500/30 pb-2">
-                        <span class="text-xs font-bold text-[#00f2ff]">🔍 환경변수 &amp; 돌발 광고 차단 시뮬레이터</span>
-                        <div class="flex gap-1.5 text-[10px]">
-                            <select id="sim-env-viewport" class="bg-[#020813] border border-cyan-500/40 rounded px-2 py-0.5 text-cyan-200">
-                                <option value="pc">환경 1: PC 웹 (UI 개편/배너 포함)</option>
-                                <option value="mobile">환경 2: 스마트폰 모바일 웹 (햄버거 메뉴)</option>
-                            </select>
+                    <div class="flex flex-wrap items-center justify-between gap-1.5 border-b border-cyan-500/30 pb-2">
+                        <span class="text-xs font-bold text-[#00f2ff]">🔍 시맨틱 화면 분석 &amp; 돌발 변수 시뮬레이터</span>
+                        <div class="flex flex-wrap gap-1 text-[10px]">
                             <select id="sim-env-login" class="bg-[#020813] border border-cyan-500/40 rounded px-2 py-0.5 text-emerald-300">
-                                <option value="logged_out">상태: 비로그인 (로그인부터 수행)</option>
-                                <option value="logged_in">상태: 로그인 돼있음 (바로 마이룸 직행)</option>
+                                <option value="logged_out">조건 1: 비로그인 (홈 ➔ 로그인 ➔ 마이룸 ➔ 강좌)</option>
+                                <option value="logged_in">조건 2: 로그인 돼있음 (홈 ➔ 바로 마이룸 ➔ 강좌)</option>
                             </select>
                             <select id="sim-env-ad" class="bg-[#020813] border border-rose-500/40 rounded px-2 py-0.5 text-rose-300">
-                                <option value="ad_overlap">돌발변수: 같은 위치에 미니테스트/광고 겹침</option>
-                                <option value="no_ad">돌발변수: 광고 없음</option>
+                                <option value="ad_overlap">변수 A: 버튼 위치에 미니테스트/광고 팝업 겹침</option>
+                                <option value="err_404">변수 B: 404 에러 페이지 발생 시 [이투스 홈으로] 복구</option>
+                                <option value="clean">변수 C: 팝업 없음</option>
                             </select>
                         </div>
                     </div>
 
-                    <!-- 시맨틱 DOM 트리 및 z-index 레이어 분석 뷰포트 -->
                     <div id="semantic-viewport" class="relative w-full h-44 rounded-lg bg-[#030914] border border-cyan-400/50 overflow-hidden p-2 flex flex-col justify-between">
                         <div class="flex items-center justify-between text-[10px] font-mono-code border-b border-cyan-500/30 pb-1">
-                            <span id="sem-url-indicator" class="text-cyan-300">URL: https://www.etoos.com/home/</span>
-                            <span id="sem-layer-guard" class="text-emerald-300">elementFromPoint() 가드 작동 중</span>
+                            <span id="sem-url-indicator" class="text-cyan-300 font-bold">URL: https://www.etoos.com/home/</span>
+                            <span class="text-emerald-300">Home-First + elementFromPoint 가드</span>
                         </div>
 
-                        <!-- 가상 DOM 요소 카드들 (좌표가 바뀌어도 속성으로 추적됨을 시각화) -->
-                        <div class="grid grid-cols-3 gap-2 my-auto relative z-10">
-                            <div id="dom-node-login" class="p-2 rounded bg-cyan-950/50 border border-cyan-500/40 text-[10px] font-mono-code">
-                                <div class="text-cyan-300 font-bold">&lt;a href="/login"&gt;</div>
-                                <div class="text-white">텍스트: "로그인"</div>
+                        <div class="grid grid-cols-4 gap-1.5 my-auto relative z-10 text-center">
+                            <div class="p-1.5 rounded bg-cyan-950/60 border border-cyan-400 text-[10px] font-mono-code">
+                                <div class="text-cyan-300 font-bold">1. 이투스 홈</div>
+                                <div class="text-[9px] text-white">/home/ 접속</div>
                             </div>
-                            <div id="dom-node-myroom" class="p-2 rounded bg-emerald-950/50 border border-emerald-500/40 text-[10px] font-mono-code">
-                                <div class="text-emerald-300 font-bold">&lt;a href="/mystudyroom"&gt;</div>
-                                <div class="text-white">텍스트: "마이룸"</div>
+                            <div class="p-1.5 rounded bg-amber-950/60 border border-amber-400 text-[10px] font-mono-code">
+                                <div class="text-amber-300 font-bold">2. 상단 로그인</div>
+                                <div class="text-[9px] text-white">비로그인 시 클릭</div>
                             </div>
-                            <div id="dom-node-studying" class="p-2 rounded bg-sky-950/50 border border-sky-500/40 text-[10px] font-mono-code">
-                                <div class="text-sky-300 font-bold">&lt;a class="lect_ list"&gt;</div>
-                                <div class="text-white">텍스트: "수강중 강좌"</div>
+                            <div class="p-1.5 rounded bg-emerald-950/60 border border-emerald-400 text-[10px] font-mono-code">
+                                <div class="text-emerald-300 font-bold">3. 상단 마이룸</div>
+                                <div class="text-[9px] text-white">시맨틱 탐색 클릭</div>
+                            </div>
+                            <div class="p-1.5 rounded bg-sky-950/60 border border-sky-400 text-[10px] font-mono-code">
+                                <div class="text-sky-300 font-bold">4. 수강중 강좌</div>
+                                <div class="text-[9px] text-white">광고 닫고 진입</div>
                             </div>
                         </div>
 
-                        <!-- 버튼과 똑같은 위치를 덮어버리는 돌발 광고/미니테스트 팝업 레이어 시뮬레이션 -->
-                        <div id="dom-node-ad-overlay" class="absolute inset-x-6 top-8 bottom-8 bg-rose-950/90 border-2 border-rose-500 rounded-lg p-2 flex flex-col justify-between z-20 transition-all duration-300">
+                        <!-- 돌발 팝업/404 오버레이 -->
+                        <div id="dom-node-ad-overlay" class="hidden absolute inset-x-4 top-7 bottom-7 bg-rose-950/95 border-2 border-rose-500 rounded-lg p-2 flex-col justify-between z-20">
                             <div class="flex justify-between items-center text-[10px] font-mono-code text-rose-200">
-                                <span>⚠️ [돌발 팝업/광고 레이어] z-index: 9999 (하단 버튼 가림!)</span>
-                                <span id="dom-node-ad-close" class="px-1.5 py-0.5 rounded bg-rose-600 text-white font-bold">[✕ 닫기]</span>
+                                <span id="overlay-title">⚠️ [돌발 미니테스트/광고 레이어] 버튼 위치 가림!</span>
+                                <span class="px-1.5 py-0.5 rounded bg-rose-600 text-white font-bold">[시맨틱 감지 후 즉시 제거]</span>
                             </div>
-                            <div class="text-[11px] text-rose-100 text-center my-auto">
-                                기존 고정 좌표 방식은 이 광고를 오클릭하지만,<br>
-                                <b>시맨틱 엔진은 elementFromPoint()로 이 레이어를 감지해 먼저 제거합니다!</b>
+                            <div id="overlay-desc" class="text-[11px] text-rose-100 text-center my-auto">
+                                elementFromPoint(x, y)로 버튼 위 광고 겹침을 감지하여 광고만 먼저 닫습니다.
                             </div>
                         </div>
 
-                        <!-- 시맨틱 타겟 스캐너 하이라이터 -->
                         <div id="semantic-scanner-beam" class="px-2 py-1 rounded bg-cyan-500/20 border border-cyan-300 text-[10px] font-mono-code text-cyan-200 text-center">
-                            [SEMANTIC SCANNER] 대기 중...
+                            [HOME-FIRST SEMANTIC AGENT] 대기 중...
                         </div>
                     </div>
 
-                    <!-- 시맨틱 분석 실행 로그 -->
                     <div id="etoos-seq-log" class="h-28 overflow-y-auto bg-[#02060d] border border-cyan-500/30 rounded p-2 font-mono-code text-[11px] space-y-1 text-cyan-100">
-                        <div class="text-cyan-400">[READY] 시맨틱 화면 분석 엔진 대기 중...</div>
+                        <div class="text-cyan-400">[READY] 무조건 이투스 공식 홈페이지(etoos.com/home/)부터 시작합니다.</div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- ========================================================================= -->
-    <!-- ⚙️ 5. Whisper STT & LLM API 설정 모달 (OpenAI / Gemini / Local Ollama 지원) -->
-    <!-- ========================================================================= -->
+    <!-- ⚙️ 5. Whisper & LLM API 설정 모달 -->
     <div id="api-config-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 backdrop-blur-sm px-4">
         <div class="hud-panel w-full max-w-md p-6 rounded-xl space-y-4">
             <div class="flex justify-between items-center border-b border-cyan-500/30 pb-2">
@@ -647,32 +625,32 @@
             </div>
             <div class="space-y-3 text-xs">
                 <div>
-                    <label class="block text-cyan-300 mb-1 font-bold">OpenAI API Key (Whisper `whisper-1` STT &amp; GPT-4o-mini 응답용)</label>
-                    <input id="cfg-openai-key" type="password" placeholder="sk-... (입력 시 실제 Whisper 모델로 음성 변환)"
-                        class="w-full px-3 py-2 rounded bg-[#030710] border border-cyan-500/50 text-white font-mono-code">
-                    <p class="text-[10px] text-cyan-300/60 mt-1">* 키가 없어도 고감도 실시간 한국어 스트리밍 STT + 내장 AI 응답기가 100% 무설치로 작동합니다.</p>
+                    <label class="block text-cyan-300 mb-1 font-bold">OpenAI API Key (Whisper `whisper-1` &amp; GPT-4o-mini)</label>
+                    <input id="cfg-openai-key" type="password" placeholder="sk-..." class="w-full px-3 py-2 rounded bg-[#030710] border border-cyan-500/50 text-white font-mono-code">
                 </div>
                 <div>
-                    <label class="block text-cyan-300 mb-1 font-bold">Gemini API Key (선택: Gemini 2.5 Flash 대화 엔진 사용 시)</label>
-                    <input id="cfg-gemini-key" type="password" placeholder="AIzaSy..."
-                        class="w-full px-3 py-2 rounded bg-[#030710] border border-cyan-500/50 text-white font-mono-code">
+                    <label class="block text-cyan-300 mb-1 font-bold">Gemini API Key (선택)</label>
+                    <input id="cfg-gemini-key" type="password" placeholder="AIzaSy..." class="w-full px-3 py-2 rounded bg-[#030710] border border-cyan-500/50 text-white font-mono-code">
                 </div>
                 <div>
-                    <label class="block text-cyan-300 mb-1 font-bold">로컬 LLM (Ollama) 주소 (선택)</label>
-                    <input id="cfg-ollama-url" type="text" value="http://localhost:11434/api/generate"
-                        class="w-full px-3 py-2 rounded bg-[#030710] border border-cyan-500/50 text-white font-mono-code">
+                    <label class="block text-cyan-300 mb-1 font-bold">로컬 LLM (Ollama) URL</label>
+                    <input id="cfg-ollama-url" type="text" value="http://localhost:11434/api/generate" class="w-full px-3 py-2 rounded bg-[#030710] border border-cyan-500/50 text-white font-mono-code">
                 </div>
             </div>
-            <div class="flex justify-end gap-2 pt-2">
-                <button onclick="saveApiConfig()" class="px-4 py-2 rounded bg-cyan-400 text-slate-950 font-bold text-xs hover:bg-cyan-300 cursor-pointer">설정 저장 및 적용</button>
+            <div class="flex justify-end pt-2">
+                <button onclick="saveApiConfig()" class="px-4 py-2 rounded bg-cyan-400 text-slate-950 font-bold text-xs cursor-pointer">저장</button>
             </div>
         </div>
     </div>
 
     <script>
         // =========================================================================
-        // 🌐 0. 클라우드 동기화 및 전역 상태 상수
+        // 🌐 0. 클라우드 동기화 및 상수 정의
+        //       핵심: 이투스 진입 URL은 오직 ETOOS_HOME_URL("https://www.etoos.com/home/")만 사용!
         // =========================================================================
+        const ETOOS_HOME_URL = "https://www.etoos.com/home/";
+        const EBSI_HOME_URL = "https://www.ebsi.co.kr/";
+
         const FIREBASE_BASE_URL = "https://jarvis-70cfd-default-rtdb.firebaseio.com";
         const FIREBASE_STATE_URL = `${FIREBASE_BASE_URL}/jarvis_state.json`;
         const FIREBASE_NODE_URL = `${FIREBASE_BASE_URL}/jarvis_state/node.json`;
@@ -687,20 +665,17 @@
         let pendingRole = "";
         let currentActiveMode = "none";
         let isStudyActive = false;
-        let studySeconds = 0;
-        let studyInterval = null;
         let isLightOn = false;
         let isCalendarVisible = true;
         let selectedDateFilter = null;
 
         let schedules = [
-            { id: 1, date: "2026-11-13", time: "20:00", title: "이투스 수강중 강좌 집중 학습 (시맨틱 공부 모드)" },
+            { id: 1, date: "2026-11-13", time: "20:30", title: "이투스 홈페이지 ➔ 마이룸 ➔ 수강중 강좌 학습" },
             { id: 2, date: "2026-11-16", time: "18:00", title: "로컬 LLM & Whisper 음성 비서 점검" }
         ];
 
         // =========================================================================
-        // 🎓 1. UI/기기 불변 시맨틱 화면 분석 & 팝업 차단 이투스 네비게이터
-        //       (고정 좌표 클릭 전면 폐기 -> DOM 속성 + elementFromPoint 레이어 가드)
+        // 🎓 1. Home-First 시맨틱 네비게이터 (직접 로그인 URL 진입 금지 -> 404 원천 차단)
         // =========================================================================
         function appendEtoosLog(text, colorClass = "text-cyan-200") {
             const box = document.getElementById("etoos-seq-log");
@@ -725,72 +700,88 @@
             const logBox = document.getElementById("etoos-seq-log");
             if (logBox) logBox.innerHTML = "";
 
-            const envViewport = document.getElementById("sim-env-viewport")?.value || "pc";
+            const openRealTab = document.getElementById("chk-open-real-tab")?.checked;
             const envLogin = document.getElementById("sim-env-login")?.value || "logged_out";
             const envAd = document.getElementById("sim-env-ad")?.value || "ad_overlap";
-            const openRealTab = document.getElementById("chk-open-real-tab")?.checked;
 
             const adOverlay = document.getElementById("dom-node-ad-overlay");
+            const overlayTitle = document.getElementById("overlay-title");
+            const overlayDesc = document.getElementById("overlay-desc");
             const urlInd = document.getElementById("sem-url-indicator");
 
-            // 돌발 광고 레이어 초기 세팅
-            if (adOverlay) {
-                adOverlay.style.display = envAd === "ad_overlap" ? "flex" : "none";
-                adOverlay.style.opacity = "1";
+            // ★ 핵심 수정: 실제 브라우저 새 탭을 열 때 절대 /login 이나 /mystudyroom 으로 바로 가지 않고
+            // 무조건 이투스 공식 홈페이지(https://www.etoos.com/home/)로만 진입하여 404 에러를 100% 방지!
+            if (openRealTab) {
+                const safeEntryUrl = targetSite === "ebsi" ? EBSI_HOME_URL : ETOOS_HOME_URL;
+                window.open(safeEntryUrl, "_blank", "noopener");
             }
 
-            appendEtoosLog(`🚀 [시맨틱 엔진 가동] 환경: ${envViewport === 'mobile' ? '모바일 웹(반응형)' : 'PC 브라우저'} | 고정 좌표 사용 안 함`, "text-cyan-300 font-bold");
-            setPopupFeedback("🔍 Step 1: 화면 DOM 트리 및 로그인 세션 상태 시맨틱 스캔 중...", "#00f2ff");
+            // Step 1: 무조건 이투스 공식 홈페이지로 먼저 접속
+            if (urlInd) urlInd.innerText = `URL: ${ETOOS_HOME_URL}`;
+            setPopupFeedback("⏳ Step 1: 이투스 공식 홈페이지(https://www.etoos.com/home/) 접속 완료!", "#00f2ff");
+            appendEtoosLog(`✅ Step 1: 직접 로그인 URL 대신 공식 홈페이지(${ETOOS_HOME_URL})로 안전 진입 완료!`, "text-cyan-300 font-bold");
+            setScannerStatus("Step 1: 이투스 홈페이지 DOM 로드 및 헤더 영역('로그인' vs '로그아웃') 시맨틱 분석");
+            await sleep(650);
 
-            if (urlInd) urlInd.innerText = envViewport === "mobile" ? "URL: https://m.etoos.com" : "URL: https://www.etoos.com/home/";
-            setScannerStatus("Step 1: querySelectorAll('a, button') ➔ 로그인 상태 텍스트('로그아웃' vs '로그인') 탐색");
-            await sleep(700);
-
-            // [1단계: 돌발 광고/팝업 레이어 선제 감지 및 차단]
-            if (envAd === "ad_overlap") {
-                appendEtoosLog(`⚠️ [레이어 충돌 감지] 타겟 버튼 위치 위에 팝업/광고(z-index: 9999)가 겹쳐 있음!`, "text-rose-400 font-bold");
-                setScannerStatus("🛡️ elementFromPoint(cx, cy) 가드 작동 ➔ 버튼 위 광고 팝업 닫기([✕]) 우선 실행!", "border-rose-400 text-rose-200");
-                await sleep(650);
-                if (adOverlay) adOverlay.style.display = "none";
-                appendEtoosLog(`✅ [오클릭 원천 차단] 광고/미니테스트 레이어 제거 완료! 하단 실제 버튼 노출 확보.`, "text-emerald-300 font-bold");
+            // 만약 404 에러 페이지가 떴을 때의 자동 복구 시뮬레이션
+            if (envAd === "err_404") {
+                if (adOverlay) {
+                    adOverlay.classList.remove("hidden");
+                    adOverlay.classList.add("flex");
+                    overlayTitle.innerText = "🚨 [404 에러 감지] '죄송합니다. 요청하신 페이지를 찾을 수 없습니다'";
+                    overlayDesc.innerText = "화면 내 [이투스 홈으로 >] 버튼을 시맨틱 탐색하여 즉시 클릭해 복구합니다!";
+                }
+                appendEtoosLog(`⚠️ 오류 화면('요청하신 페이지를 찾을 수 없습니다') 감지 ➔ [이투스 홈으로 >] 버튼 자동 클릭!`, "text-rose-400 font-bold");
+                await sleep(750);
+                if (adOverlay) {
+                    adOverlay.classList.add("hidden");
+                    adOverlay.classList.remove("flex");
+                }
+                appendEtoosLog(`✅ 이투스 공식 홈페이지(${ETOOS_HOME_URL}) 정상 복귀 완료!`, "text-emerald-300 font-bold");
                 await sleep(500);
             }
 
-            // [2단계: 로그인 여부에 따른 분기]
+            // Step 2: 로그인 여부 판별 및 분기
             if (envLogin === "logged_in") {
-                appendEtoosLog(`✅ [세션 감지] 이미 로그인된 상태('로그아웃' 노드 존재) 확인! 로그인 과정 생략.`, "text-emerald-300 font-bold");
+                appendEtoosLog(`✅ Step 2: 홈페이지 상단에 '로그아웃' 텍스트 존재 확인 (이미 로그인됨) ➔ [로그인] 과정 생략!`, "text-emerald-300 font-bold");
             } else {
-                appendEtoosLog(`🔑 [비로그인 상태] 시맨틱 탐색으로 [로그인] 요소(href*='login') 포착 및 클릭`, "text-amber-300");
-                setScannerStatus("Step 2: <input type='password'> 기준 Form 역추적 ➔ ID(hera47)/PW 시맨틱 주입");
-                if (urlInd) urlInd.innerText = "URL: https://member.etoos.com/login";
-                await sleep(800);
-                appendEtoosLog(`✅ ID/PW 입력 및 [로그인] Submit 완료 (크롬 추천 팝업 간섭 0%)`, "text-cyan-200");
-                await sleep(600);
+                setPopupFeedback("🔑 Step 2: 비로그인 상태 ➔ 홈페이지 상단 [로그인] 버튼 시맨틱 클릭", "#ffb84d");
+                appendEtoosLog(`🖱️ Step 2: 홈페이지 상단 [로그인] 요소를 찾아 클릭 ➔ 로그인 화면으로 정상 이동`, "text-amber-300");
+                setScannerStatus("Step 2: 홈페이지 내 [로그인] 버튼 클릭 ➔ ID(hera47)/PW 주입 후 Submit", "border-amber-400 text-amber-200");
+                await sleep(750);
+                appendEtoosLog(`✅ Step 2-B: 로그인 완료 후 이투스 홈페이지(${ETOOS_HOME_URL})로 자동 복귀 완료`, "text-cyan-200");
+                await sleep(550);
             }
 
-            // [3단계: 마이룸 진입]
-            setPopupFeedback("🔍 Step 3: [마이룸] 시맨틱 노드 탐색 및 이동 중...", "#00f2ff");
-            setScannerStatus("Step 3: 텍스트 '마이룸' / href*='mystudyroom' 시맨틱 타겟팅 클릭", "border-emerald-400 text-emerald-200");
-            if (urlInd) urlInd.innerText = "URL: https://www.etoos.com/mystudyroom/";
-            appendEtoosLog(`➡️ [마이룸] 시맨틱 노드 클릭 완료 (UI 위치 변경 무관)`, "text-emerald-300");
-            await sleep(700);
+            // Step 3: 홈페이지 상단 [마이룸] 버튼 클릭
+            setPopupFeedback("🖱️ Step 3: 홈페이지 상단 [마이룸] 버튼 시맨틱 탐색 및 클릭", "#00f2ff");
+            setScannerStatus("Step 3: 홈페이지 내 '마이룸' 요소 클릭 ➔ 마이룸 진입", "border-emerald-400 text-emerald-200");
+            appendEtoosLog(`➡️ Step 3: 홈페이지 상단 [마이룸] 버튼 클릭 완료`, "text-emerald-300");
+            if (urlInd) urlInd.innerText = "URL: https://www.etoos.com/mystudyroom/ (홈 경유 정상 진입)";
+            await sleep(650);
 
-            // [4단계: 마이룸 내부 미니테스트/광고 팝업 재검증]
-            appendEtoosLog(`🛡️ 마이룸 내부 미니테스트 팝업/배너 잔존 여부 재스캔 ➔ 클린 상태 확인`, "text-cyan-300");
-            await sleep(500);
-
-            // [5단계: 최종 목적지 '수강중 강좌' 진입]
-            setPopupFeedback("🎓 Step 4: 최종 목적지 [마이룸 ➔ 수강중 강좌] 진입 완료!", "#00ffaa");
-            setScannerStatus("✅ 최종 도달 완료: [마이룸 ➔ 수강중 강좌] (오클릭 0건)", "border-emerald-400 text-emerald-300 font-bold");
-            appendEtoosLog(`🎯 [최종 도달 완료] '수강중 강좌' 요소 클릭 완료! 현재 화면: 마이룸 > 수강중 강좌`, "text-emerald-400 font-bold");
-
-            // 실제 브라우저 새 탭 열기 체크 시: 로그인 후 곧바로 마이룸/수강중강좌로 직행하는 Return URL 딥링크 호출
-            if (openRealTab) {
-                const targetUrl = targetSite === "ebsi"
-                    ? "https://www.ebsi.co.kr/ebs/pot/potl/login.ebs?alertYn=N"
-                    : "https://www.etoos.com/mystudyroom/";
-                window.open(targetUrl, "_blank", "noopener");
+            // Step 4: 마이룸 진입 시 똑같은 위치를 가리는 미니테스트/광고 팝업 감지 및 제거
+            if (envAd === "ad_overlap") {
+                if (adOverlay) {
+                    adOverlay.classList.remove("hidden");
+                    adOverlay.classList.add("flex");
+                    overlayTitle.innerText = "⚠️ [미니테스트/광고 팝업 감지] '수강중 강좌' 버튼 위치 위를 덮고 있음!";
+                    overlayDesc.innerText = "elementFromPoint(cx, cy)로 가림막을 감지하여 팝업의 [✕ 닫기]를 먼저 클릭합니다!";
+                }
+                appendEtoosLog(`🛡️ Step 4: [오클릭 차단] 타겟 위치 위에 겹친 미니테스트/광고 팝업 감지 ➔ 팝업 [✕ 닫기] 우선 실행!`, "text-rose-400 font-bold");
+                await sleep(750);
+                if (adOverlay) {
+                    adOverlay.classList.add("hidden");
+                    adOverlay.classList.remove("flex");
+                }
+                appendEtoosLog(`✅ Step 4-B: 광고/미니테스트 팝업 제거 완료! 하단 실제 메뉴 노출 확인`, "text-emerald-300");
+                await sleep(450);
             }
+
+            // Step 5: 최종 목적지 [수강중 강좌] 클릭
+            setPopupFeedback("🎓 Step 5: [마이룸 ➔ 수강중 강좌] 최종 진입 완료!", "#00ffaa");
+            setScannerStatus("✅ 최종 도달 완료: [이투스 홈 ➔ 마이룸 ➔ 수강중 강좌] (404 및 광고 오클릭 0건)", "border-emerald-400 text-emerald-300 font-bold");
+            appendEtoosLog(`🎯 Step 5: [수강중 강좌] 시맨틱 요소 클릭 완료! 최종 화면: 마이룸 > 수강중 강좌`, "text-emerald-400 font-bold");
         }
 
         function runEtoosSmartLoginOnly(fromRemote = false) {
@@ -805,27 +796,19 @@
             if (!fromRemote) patchCloudState({ remoteCmd: { type: "ebsi", ts: Date.now() } });
         }
 
-        // 스마트폰/태블릿/PC 브라우저 어디서나 UI가 바뀌어도 광고를 닫고 수강중 강좌로 직행하는 북마클릿 복사
-        function copyMobileSemanticBookmarklet() {
-            const bookmarklet = `javascript:(function(){const closePopups=()=>{document.querySelectorAll("[class*='pop'],[class*='modal'],[class*='layer'],[id*='pop']").forEach(b=>{const btn=Array.from(b.querySelectorAll("button,a,span")).find(e=>/닫기|close|×|보지 않기/i.test(e.innerText||e.title||''));if(btn)btn.click();else if(getComputedStyle(b).position==='fixed')b.style.display='none';});};closePopups();const els=Array.from(document.querySelectorAll("a,button,span"));const studyBtn=els.find(e=>/수강중\\s*강좌|수강중인\\s*강좌/.test(e.innerText||''));if(studyBtn){studyBtn.click();return;}const myroomBtn=els.find(e=>/마이룸/.test(e.innerText||'')||(e.href||'').includes('mystudyroom'));if(myroomBtn){myroomBtn.click();return;}location.href='https://www.etoos.com/mystudyroom/';})();`;
-            navigator.clipboard?.writeText(bookmarklet);
-            setPopupFeedback("📋 모바일/PC 겸용 시맨틱 자동이동 스크립트가 클립보드에 복사되었습니다!", "#00ffaa");
-        }
-
         // =========================================================================
-        // 🧠 2. 인텐트 라우터 (Intent Router: 제어 명령 vs 일상 자유 대화 자동 분기)
+        // 🧠 2. 인텐트 라우터 (Intent Router: 제어 명령 vs 일상 자유 대화 분기)
         // =========================================================================
         function classifyUserIntent(text) {
             const t = (text || "").trim().toLowerCase();
-            // 질문형 어미('뭐야', '알려줘', '설명해', '어때', '왜')가 강하고 제어 동사가 없으면 일반 대화로 우선 분류
             const controlPatterns = [
                 /공부\s*모드/, /코딩\s*모드/, /게임\s*모드/, /휴식\s*모드/,
-                /이투스\s*(열어|켜|틀어|로그인|가자|실행)/, /수강중\s*강좌/, /마이룸\s*(열어|가자|실행)/,
+                /이투스\s*(열어|켜|틀어|로그인|가자|실행|접속)/, /수강중\s*강좌/, /마이룸\s*(열어|가자|실행)/,
                 /ebs\s*(열어|켜|로그인)/, /인강\s*(열어|켜|틀어)/,
                 /(백색\s*소음|브라운\s*노이즈|빗소리|바이노럴)\s*(틀어|켜|재생|꺼|중지)/,
                 /(불|조명)\s*(켜|꺼)/, /화면\s*분할/, /창\s*분할/
             ];
-            if (controlPatterns.some(rx => rx.test(t)) || ["공부 모드", "코딩 모드", "게임 모드", "휴식 모드", "이투스 열어", "빗소리 틀어"].includes(t)) {
+            if (controlPatterns.some(rx => rx.test(t)) || ["공부 모드", "코딩 모드", "게임 모드", "휴식 모드", "이투스", "이투스 열어", "빗소리 틀어"].includes(t)) {
                 return "SYSTEM_CONTROL";
             }
             return "GENERAL_CHAT";
@@ -862,8 +845,7 @@
             if (!window.speechSynthesis) return;
             try {
                 window.speechSynthesis.cancel();
-                const cleanText = text.replace(/[*#`~_]/g, "");
-                const utter = new SpeechSynthesisUtterance(cleanText);
+                const utter = new SpeechSynthesisUtterance(text.replace(/[*#`~_]/g, ""));
                 utter.lang = "ko-KR";
                 utter.rate = 1.05;
                 window.speechSynthesis.speak(utter);
@@ -875,19 +857,15 @@
             const geminiKey = localStorage.getItem("jarvis_gemini_key") || "";
             const ollamaUrl = localStorage.getItem("jarvis_ollama_url") || "http://localhost:11434/api/generate";
 
-            // 1순위: OpenAI API (GPT-4o-mini)
             if (openaiKey) {
                 try {
                     const res = await fetch("https://api.openai.com/v1/chat/completions", {
                         method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                            "Authorization": `Bearer ${openaiKey}`
-                        },
+                        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${openaiKey}` },
                         body: JSON.stringify({
                             model: "gpt-4o-mini",
                             messages: [
-                                { role: "system", content: "당신은 아이언맨의 인공지능 비서 J.A.R.V.I.S.입니다. 한국어로 핵심만 명쾌하고 지적인 어조로 2~3문장 내에 답변하세요." },
+                                { role: "system", content: "당신은 J.A.R.V.I.S. AI 비서입니다. 한국어로 핵심만 명쾌하게 2~3문장 내에 답변하세요." },
                                 { role: "user", content: userPrompt }
                             ]
                         })
@@ -899,7 +877,6 @@
                 } catch (e) {}
             }
 
-            // 2순위: Gemini API (gemini-2.5-flash)
             if (geminiKey) {
                 try {
                     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`, {
@@ -916,7 +893,6 @@
                 } catch (e) {}
             }
 
-            // 3순위: 등록된 로컬 LLM (Ollama) 호출
             try {
                 const res = await fetch(ollamaUrl, {
                     method: "POST",
@@ -933,29 +909,16 @@
                 }
             } catch (e) {}
 
-            // 4순위: 키 미설정 시 내장 스마트 대화 지식 엔진 응답
-            const p = userPrompt.toLowerCase();
-            if (p.includes("안녕") || p.includes("반가워") || p.includes("누구")) {
-                return "반갑습니다! 저는 시맨틱 화면 분석 엔진과 상시 음성 인식(Whisper VAD)이 탑재된 J.A.R.V.I.S.입니다. 작업 모드 실행부터 일상 대화까지 무엇이든 말씀해 주세요.";
-            }
-            if (p.includes("시간") || p.includes("몇 시") || p.includes("날짜")) {
-                return `현재 시각은 ${new Date().toLocaleTimeString("ko-KR")}이며, 모든 클라우드 및 로컬 연산 노드가 정상 가동 중입니다.`;
-            }
-            if (p.includes("공부") || p.includes("집중") || p.includes("수능")) {
-                return "최고의 집중을 위해 브라운 노이즈나 14Hz 바이노럴 비트를 켜드릴까요? '공부 모드 켜줘'라고 말씀하시면 광고 차단 후 이투스 수강중 강좌로 즉시 안내합니다.";
-            }
-            return `"${userPrompt}"에 대해 말씀하셨군요. 현재 내장 대화 엔진으로 응답 중이며, 우측 상단 [⚙️ Whisper & LLM 엔진 설정]에서 API 키나 로컬 Ollama를 연결하시면 한층 더 깊은 추론 대화가 가능합니다.`;
+            return `"${userPrompt}"에 대해 말씀하셨군요. 언제든 공부 모드("공부 모드 켜줘")나 이투스("이투스 열어줘") 실행을 명령하시거나 궁금한 점을 물어보세요.`;
         }
 
-        // 통합 Router 실행 함수
-        async function routeAndProcessUtterance(utterance, fromRemote = false, sttEngineLabel = "TEXT/VOICE") {
+        async function routeAndProcessUtterance(utterance, fromRemote = false, sttLabel = "VOICE/TEXT") {
             const text = (utterance || "").trim();
             if (!text) return;
 
             const intent = classifyUserIntent(text);
             const badgeEl = document.getElementById("router-intent-badge");
-
-            appendChatMessage("USER", text, sttEngineLabel);
+            appendChatMessage("USER", text, sttLabel);
 
             if (!fromRemote) {
                 patchCloudState({ remoteCmd: { type: "utterance", value: text, ts: Date.now() } });
@@ -966,19 +929,18 @@
                     badgeEl.innerText = "ROUTER: SYSTEM_CONTROL";
                     badgeEl.className = "text-[10px] font-mono-code px-2 py-0.5 rounded bg-cyan-500/20 border border-cyan-400 text-cyan-200";
                 }
-                const ctrlResult = executeSystemControlCommand(text, fromRemote);
-                appendChatMessage("JARVIS", ctrlResult, "⚡ [ROUTER ➔ SYSTEM_CONTROL 실행]");
-                speakJarvisReply(ctrlResult);
+                const ctrlMsg = executeSystemControlCommand(text, fromRemote);
+                appendChatMessage("JARVIS", ctrlMsg, "⚡ [ROUTER ➔ SYSTEM_CONTROL]");
+                speakJarvisReply(ctrlMsg);
             } else {
                 if (badgeEl) {
                     badgeEl.innerText = "ROUTER: GENERAL_CHAT (LLM)";
                     badgeEl.className = "text-[10px] font-mono-code px-2 py-0.5 rounded bg-emerald-500/20 border border-emerald-400 text-emerald-200";
                 }
-                setJarvisMessage("🧠 LLM 추론 엔진이 답변을 생성하고 있습니다...");
-                const llmReply = await generateLLMChatResponse(text);
-                setJarvisMessage(llmReply);
-                appendChatMessage("JARVIS", llmReply, "💬 [ROUTER ➔ LLM GENERAL_CHAT 응답]");
-                speakJarvisReply(llmReply);
+                const reply = await generateLLMChatResponse(text);
+                setJarvisMessage(reply);
+                appendChatMessage("JARVIS", reply, "💬 [ROUTER ➔ LLM GENERAL_CHAT]");
+                speakJarvisReply(reply);
             }
         }
 
@@ -986,11 +948,11 @@
             const tLow = t.toLowerCase();
             if (["이투스", "etoos", "수강중", "마이룸", "인강"].some(k => tLow.includes(k))) {
                 runEtoosSmartLoginOnly(fromRemote);
-                return "시맨틱 화면 분석 엔진을 가동하여 광고 레이어를 차단하고 [이투스 마이룸 ➔ 수강중 강좌]로 진입합니다.";
+                return "이투스 공식 홈페이지(etoos.com/home/)로 먼저 접속한 뒤 [로그인 ➔ 마이룸 ➔ 광고 닫기 ➔ 수강중 강좌] 시맨틱 이동을 수행합니다.";
             }
             if (["ebsi", "ebs"].some(k => tLow.includes(k))) {
                 runEbsiLoginSequence(fromRemote);
-                return "EBSi 시맨틱 자동 로그인을 수행합니다.";
+                return "EBSi 공식 홈페이지로 접속합니다.";
             }
             if (["백색소음", "빗소리", "브라운", "바이노럴"].some(k => tLow.includes(k))) {
                 if (["꺼", "중지"].some(k => tLow.includes(k))) return stopWhiteNoise();
@@ -1000,7 +962,7 @@
             }
             if (tLow.includes("불") || tLow.includes("조명")) {
                 toggleLightMode(fromRemote);
-                return isLightOn ? "스마트 조명을 점등했습니다." : "스마트 조명을 소등했습니다.";
+                return isLightOn ? "스마트 조명을 켰습니다." : "스마트 조명을 껐습니다.";
             }
             if (tLow.includes("코딩")) return activateWorkspacePreset("coding", null, true, fromRemote);
             if (tLow.includes("게임")) return activateWorkspacePreset("game", null, true, fromRemote);
@@ -1010,7 +972,6 @@
 
         // =========================================================================
         // 🎙️ 3. 상시 마이크 Listening (Web Audio VAD) ➔ Whisper STT ➔ LLM 파이프라인
-        //       (버튼 클릭 없이 목소리 데시벨을 감지해 자동 녹음 후 Whisper로 전송)
         // =========================================================================
         let alwaysOnMicActive = false;
         let vadAudioCtx = null;
@@ -1021,10 +982,9 @@
         let isCurrentlySpeaking = false;
         let silenceStartTimestamp = 0;
         let continuousRecognition = null;
-        let latestBrowserTranscript = "";
 
-        const VAD_ENERGY_THRESHOLD = 0.028; // 발화 시작 데시벨 임계값
-        const VAD_SILENCE_DURATION_MS = 1150; // 1.15초 침묵 시 발화 완료로 판정 후 즉시 Whisper 전송
+        const VAD_ENERGY_THRESHOLD = 0.028;
+        const VAD_SILENCE_DURATION_MS = 1150;
 
         async function startAlwaysOnListening() {
             if (alwaysOnMicActive) return;
@@ -1039,7 +999,6 @@
                 vadAnalyser.fftSize = 256;
                 source.connect(vadAnalyser);
 
-                // MediaRecorder 설정 (발화 구간 오디오 캡처 ➔ Whisper API 전송용)
                 mediaRecorder = new MediaRecorder(vadMediaStream);
                 mediaRecorder.ondataavailable = (e) => {
                     if (e.data && e.data.size > 0) recordedChunks.push(e.data);
@@ -1050,9 +1009,7 @@
                     await processCapturedVoiceWithWhisper(audioBlob);
                 };
 
-                // 병렬 고감도 스트리밍 STT 가동 (API 키 미설정 시에도 무지연 텍스트 변환 보장)
                 startContinuousStreamSTT();
-
                 alwaysOnMicActive = true;
                 updateVadUI(true, "LISTENING (상시 대기)");
                 monitorVoiceActivityLoop();
@@ -1064,9 +1021,8 @@
         function startContinuousStreamSTT() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SpeechRecognition) return;
-            if (continuousRecognition) {
-                try { continuousRecognition.stop(); } catch (e) {}
-            }
+            if (continuousRecognition) { try { continuousRecognition.stop(); } catch (e) {} }
+
             continuousRecognition = new SpeechRecognition();
             continuousRecognition.lang = "ko-KR";
             continuousRecognition.continuous = true;
@@ -1077,12 +1033,9 @@
                 for (let i = event.resultIndex; i < event.results.length; i++) {
                     const tr = event.results[i][0].transcript.trim();
                     if (event.results[i].isFinal) {
-                        latestBrowserTranscript = tr;
-                        // OpenAI Whisper API 키가 없는 경우 즉시 스트림 STT 결과를 Router로 전달
                         const hasOpenAIKey = !!(localStorage.getItem("jarvis_openai_key") || "");
                         if (!hasOpenAIKey && tr) {
                             routeAndProcessUtterance(tr, false, "🎙️ ALWAYS-ON STT");
-                            latestBrowserTranscript = "";
                         }
                     } else {
                         interim += tr;
@@ -1090,25 +1043,17 @@
                 }
                 const previewEl = document.getElementById("live-stt-preview");
                 if (previewEl) {
-                    if (interim) {
-                        previewEl.classList.remove("hidden");
-                        previewEl.innerText = `🎙️ "${interim}..."`;
-                    } else {
-                        previewEl.classList.add("hidden");
-                    }
+                    previewEl.classList.toggle("hidden", !interim);
+                    if (interim) previewEl.innerText = `🎙️ "${interim}..."`;
                 }
             };
 
             continuousRecognition.onend = () => {
-                if (alwaysOnMicActive) {
-                    try { continuousRecognition.start(); } catch (e) {}
-                }
+                if (alwaysOnMicActive) { try { continuousRecognition.start(); } catch (e) {} }
             };
-
             try { continuousRecognition.start(); } catch (e) {}
         }
 
-        // 실시간 RMS 데시벨 분석 및 VAD(음성 활동 감지) 루프
         function monitorVoiceActivityLoop() {
             if (!alwaysOnMicActive || !vadAnalyser) return;
             const canvas = document.getElementById("vad-meter-canvas");
@@ -1127,7 +1072,6 @@
                 }
                 const rms = Math.sqrt(sumSquares / data.length);
 
-                // VAD 미터기 렌더링
                 if (ctx && canvas) {
                     ctx.fillStyle = "#02060d";
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -1137,33 +1081,29 @@
                 }
 
                 const reactor = document.getElementById("reactor-container");
-
                 if (rms > VAD_ENERGY_THRESHOLD) {
                     silenceStartTimestamp = Date.now();
                     if (!isCurrentlySpeaking) {
                         isCurrentlySpeaking = true;
                         if (reactor) reactor.classList.add("listening-speaking");
-                        updateVadUI(true, "🗣️ 음성 감지됨 (녹음 중...)");
+                        updateVadUI(true, "🗣️ 음성 감지됨 (녹음 중)");
                         if (mediaRecorder && mediaRecorder.state === "inactive") {
                             recordedChunks = [];
                             try { mediaRecorder.start(); } catch (e) {}
                         }
                     }
-                } else if (isCurrentlySpeaking) {
-                    if (Date.now() - silenceStartTimestamp > VAD_SILENCE_DURATION_MS) {
-                        isCurrentlySpeaking = false;
-                        if (reactor) reactor.classList.remove("listening-speaking");
-                        updateVadUI(true, "⏳ Whisper STT 변환 중...");
-                        if (mediaRecorder && mediaRecorder.state === "recording") {
-                            try { mediaRecorder.stop(); } catch (e) {}
-                        }
+                } else if (isCurrentlySpeaking && (Date.now() - silenceStartTimestamp > VAD_SILENCE_DURATION_MS)) {
+                    isCurrentlySpeaking = false;
+                    if (reactor) reactor.classList.remove("listening-speaking");
+                    updateVadUI(true, "⏳ Whisper STT 분석 중...");
+                    if (mediaRecorder && mediaRecorder.state === "recording") {
+                        try { mediaRecorder.stop(); } catch (e) {}
                     }
                 }
             };
             checkFrame();
         }
 
-        // 발화 종료 시 오디오 블롭을 OpenAI Whisper 모델(whisper-1)로 전송하여 고정확도 변환 수행
         async function processCapturedVoiceWithWhisper(audioBlob) {
             const openaiKey = localStorage.getItem("jarvis_openai_key") || "";
             if (openaiKey && audioBlob.size > 1000) {
@@ -1197,7 +1137,7 @@
                 alwaysOnMicActive = false;
                 if (continuousRecognition) { try { continuousRecognition.stop(); } catch (e) {} }
                 if (vadMediaStream) { vadMediaStream.getTracks().forEach(t => t.stop()); }
-                updateVadUI(false, "PAUSED (일시 정지)");
+                updateVadUI(false, "PAUSED");
             } else {
                 startAlwaysOnListening();
             }
@@ -1212,12 +1152,7 @@
             if (dot) dot.className = isOn ? "w-2 h-2 rounded-full bg-emerald-400 animate-ping" : "w-2 h-2 rounded-full bg-rose-500";
             if (txt) txt.innerText = `ALWAYS-ON MIC: ${statusText}`;
             if (lbl) lbl.innerText = isOn ? `🎙️ ${statusText}` : "🔇 상시 감지 꺼짐";
-            if (btn) {
-                btn.innerText = isOn ? "ON" : "OFF";
-                btn.className = isOn
-                    ? "px-2 py-0.5 rounded bg-emerald-500/20 border border-emerald-400 text-emerald-200 cursor-pointer"
-                    : "px-2 py-0.5 rounded bg-rose-500/20 border border-rose-400 text-rose-200 cursor-pointer";
-            }
+            if (btn) btn.innerText = isOn ? "ON" : "OFF";
         }
 
         function executeVoiceOrTextCommand() {
@@ -1233,28 +1168,8 @@
         });
 
         // =========================================================================
-        // ⚙️ 4. API 설정 모달 & 백색소음 & Firebase 클라우드 동기화
+        // ⚙️ 4. 백색소음 & 클라우드 동기화 & UI 컨트롤
         // =========================================================================
-        function openApiConfigModal() {
-            document.getElementById("cfg-openai-key").value = localStorage.getItem("jarvis_openai_key") || "";
-            document.getElementById("cfg-gemini-key").value = localStorage.getItem("jarvis_gemini_key") || "";
-            document.getElementById("cfg-ollama-url").value = localStorage.getItem("jarvis_ollama_url") || "http://localhost:11434/api/generate";
-            const m = document.getElementById("api-config-modal");
-            m.classList.remove("hidden"); m.classList.add("flex");
-        }
-        function closeApiConfigModal() {
-            const m = document.getElementById("api-config-modal");
-            m.classList.add("hidden"); m.classList.remove("flex");
-        }
-        function saveApiConfig() {
-            localStorage.setItem("jarvis_openai_key", document.getElementById("cfg-openai-key").value.trim());
-            localStorage.setItem("jarvis_gemini_key", document.getElementById("cfg-gemini-key").value.trim());
-            localStorage.setItem("jarvis_ollama_url", document.getElementById("cfg-ollama-url").value.trim());
-            closeApiConfigModal();
-            setJarvisMessage("Whisper STT 및 LLM 추론 엔진 설정이 저장되었습니다.");
-        }
-
-        // 백색소음 합성기
         class WebWhiteNoiseSynthesizer {
             constructor() { this.ctx = null; this.playing = false; this.activeNodes = []; this.masterGain = null; }
             start(profile = "brown", volume = 0.32) {
@@ -1329,10 +1244,9 @@
                 setMonitorBrightness(40);
             }
             if (!fromRemote) patchCloudState({ currentActiveMode: mode });
-            return `⚡ ${mode.toUpperCase()} 모드 세팅 완료`;
+            return `⚡ ${mode.toUpperCase()} 모드 실행 완료 (이투스 공식 홈페이지 선행 진입 적용)`;
         }
 
-        // Firebase 클라우드 통신
         function setCloudBadge(ok, msg) {
             const dot = document.getElementById("cloud-sync-dot");
             const txt = document.getElementById("cloud-sync-text");
@@ -1354,7 +1268,7 @@
             }
         }
 
-        async function pullStateFromCloud(manual = false) {
+        async function pullStateFromCloud() {
             try {
                 const res = await fetch(`${FIREBASE_STATE_URL}?t=${Date.now()}`, { cache: "no-store" });
                 if (!res.ok) return setCloudBadge(false, `RULES LOCKED (${res.status})`);
@@ -1435,7 +1349,24 @@
             await patchCloudState({ node: nodeInfo });
         }
 
-        // 인증 및 화면 전환 (USER 접속 즉시 상시 마이크 자동 가동!)
+        function openApiConfigModal() {
+            document.getElementById("cfg-openai-key").value = localStorage.getItem("jarvis_openai_key") || "";
+            document.getElementById("cfg-gemini-key").value = localStorage.getItem("jarvis_gemini_key") || "";
+            document.getElementById("cfg-ollama-url").value = localStorage.getItem("jarvis_ollama_url") || "http://localhost:11434/api/generate";
+            const m = document.getElementById("api-config-modal");
+            m.classList.remove("hidden"); m.classList.add("flex");
+        }
+        function closeApiConfigModal() {
+            const m = document.getElementById("api-config-modal");
+            m.classList.add("hidden"); m.classList.remove("flex");
+        }
+        function saveApiConfig() {
+            localStorage.setItem("jarvis_openai_key", document.getElementById("cfg-openai-key").value.trim());
+            localStorage.setItem("jarvis_gemini_key", document.getElementById("cfg-gemini-key").value.trim());
+            localStorage.setItem("jarvis_ollama_url", document.getElementById("cfg-ollama-url").value.trim());
+            closeApiConfigModal();
+        }
+
         function openAuthModal(role) {
             pendingRole = role;
             document.getElementById("modal-role-title").innerText = `${role} 모드 인증`;
@@ -1466,7 +1397,7 @@
                 const p = document.getElementById("panel-screen");
                 p.classList.remove("hidden"); p.classList.add("flex");
             } else {
-                await pullStateFromCloud(true);
+                await pullStateFromCloud();
                 showUserDashboard();
             }
         }
@@ -1480,7 +1411,6 @@
         function showUserDashboard() {
             document.getElementById("user-dashboard").classList.remove("hidden");
             renderCalendar(); renderScheduleList();
-            // 대시보드 진입과 동시에 버튼 클릭 없이 상시 마이크 Listening 시작!
             startAlwaysOnListening();
         }
 
@@ -1579,7 +1509,7 @@
                 if (el) el.innerText = new Date().toTimeString().split(" ")[0];
             }, 1000);
             pullStateFromCloud();
-            setInterval(() => pullStateFromCloud(false), 1500);
+            setInterval(pullStateFromCloud, 1500);
         });
     </script>
 </body>
