@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>J.A.R.V.I.S. v11.0 // Home-First Semantic Navigator + Whisper VAD + Router</title>
+    <title>J.A.R.V.I.S. v11.5 // LLM Semantic Router + High-Accuracy Whisper STT + Secure Auth</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Noto+Sans+KR:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
@@ -157,8 +157,12 @@
     <div id="brightness-overlay"></div>
     <div class="hud-grid"></div>
 
-    <!-- 우측 상단 고정 클라우드 & 상시 마이크(VAD) 배지 -->
-    <div class="fixed top-2 right-2 z-50 flex items-center gap-2">
+    <!-- 우측 상단 고정 클라우드 & Whisper VAD 상태 배지 -->
+    <div class="fixed top-2 right-2 z-50 flex flex-wrap items-center gap-2">
+        <div class="px-2.5 py-1 rounded bg-[#030914]/95 border border-purple-500/40 text-[10px] font-mono-code flex items-center gap-1.5">
+            <span id="whisper-engine-dot" class="w-2 h-2 rounded-full bg-purple-400"></span>
+            <span id="whisper-engine-text" class="text-purple-300">WHISPER STT: HYBRID READY</span>
+        </div>
         <div class="px-2.5 py-1 rounded bg-[#030914]/95 border border-emerald-500/40 text-[10px] font-mono-code flex items-center gap-1.5">
             <span id="vad-indicator-dot" class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
             <span id="vad-indicator-text" class="text-emerald-300">ALWAYS-ON MIC: STANDBY</span>
@@ -173,20 +177,20 @@
     <section id="login-screen" class="relative z-10 flex flex-col items-center justify-center min-h-screen px-4">
         <div class="text-center mb-8">
             <div class="inline-block px-3 py-1 mb-3 text-xs tracking-[0.25em] border border-cyan-400/40 rounded-full text-cyan-300 bg-cyan-950/30">
-                HOME-FIRST SEMANTIC NAVIGATOR // WHISPER VAD // INTENT ROUTER
+                LLM SEMANTIC ROUTER // HIGH-ACCURACY WHISPER STT // ZERO AUTO-FILL SECURITY
             </div>
             <h1 class="font-orbitron text-4xl sm:text-6xl font-black tracking-[0.22em] neon-text">
                 J.A.R.V.I.S.
             </h1>
             <p class="mt-2 text-xs sm:text-sm text-cyan-200/70">
-                이투스 홈페이지 선행 진입(404 원천 차단) · 시맨틱 광고 제거 · 상시 음성 대화 라우터
+                LLM 명령/일상대화 자동 분기 라우터 · Whisper 도메인 프롬프트 음성 인식 · 보안 수동 인증
             </p>
         </div>
 
         <div class="flex flex-col sm:flex-row gap-5 w-full max-w-md justify-center">
             <button onclick="openAuthModal('USER')" class="role-btn flex-1 py-4 px-6 rounded-lg font-orbitron text-lg font-bold tracking-[0.15em] cursor-pointer">
                 USER
-                <span class="block text-[11px] font-sans font-normal tracking-normal mt-1 opacity-80">상시 음성 비서 &amp; 시맨틱 제어</span>
+                <span class="block text-[11px] font-sans font-normal tracking-normal mt-1 opacity-80">상시 Whisper 비서 &amp; LLM 라우터</span>
             </button>
             <button onclick="openAuthModal('PANEL')" class="role-btn flex-1 py-4 px-6 rounded-lg font-orbitron text-lg font-bold tracking-[0.15em] cursor-pointer">
                 PANEL
@@ -208,21 +212,24 @@
         </div>
     </section>
 
-    <!-- 비밀번호 모달 -->
+    <!-- 비밀번호 모달 (자동 입력 기능 완전 제거 및 브라우저 자동완성 차단 적용) -->
     <div id="auth-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 backdrop-blur-sm px-4">
         <div class="hud-panel w-full max-w-sm p-6 rounded-lg text-center">
             <div class="flex justify-between items-center mb-4">
                 <span class="font-orbitron text-xs tracking-widest text-cyan-400">SECURITY VERIFICATION</span>
-                <button onclick="closeAuthModal()" class="text-cyan-400 hover:text-white text-lg leading-none px-2">&times;</button>
+                <button onclick="closeAuthModal()" class="text-cyan-400 hover:text-white text-lg leading-none px-2 cursor-pointer">&times;</button>
             </div>
-            <h2 id="modal-role-title" class="text-xl font-bold text-white mb-2">USER 모드 인증</h2>
-            <input type="password" id="password-input" placeholder="비밀번호 입력"
-                class="w-full px-4 py-3 rounded bg-[#030710] border border-cyan-500/60 text-center text-white tracking-widest focus:outline-none mb-2">
+            <h2 id="modal-role-title" class="text-xl font-bold text-white mb-1">USER 모드 인증</h2>
+            <p class="text-[11px] text-cyan-300/70 mb-3">보안을 위해 자동 입력이 비활성화되었습니다. 직접 비밀번호를 입력하세요.</p>
+            <input type="password" id="password-input" placeholder="보안 비밀번호 직접 입력"
+                autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-lpignore="true"
+                class="w-full px-4 py-3 rounded bg-[#030710] border border-cyan-500/60 text-center text-white tracking-widest focus:outline-none focus:border-cyan-300 mb-2">
             <div id="auth-error-msg" class="text-xs text-rose-400 h-4 mb-3"></div>
-            <!--<div class="flex gap-2">
-                //<button onclick="fillDemoPassword()" type="button" class="px-3 py-2.5 rounded border border-cyan-500/30 text-xs text-cyan-300/80 hover:bg-cyan-950/60 cursor-pointer">자동입력</button>
-                //<button onclick="verifyPassword()" type="button" class="flex-1 py-2.5 rounded bg-cyan-400 text-[#02060d] font-bold text-sm hover:bg-cyan-300 cursor-pointer">인증 및 접속 (상시 마이크 ON)</button>
-            //</div> -->
+            <div class="flex">
+                <button onclick="verifyPassword()" type="button" class="w-full py-2.5 rounded bg-cyan-400 text-[#02060d] font-bold text-sm hover:bg-cyan-300 transition cursor-pointer">
+                    보안 인증 및 접속 (Whisper 마이크 ON)
+                </button>
+            </div>
         </div>
     </div>
 
@@ -259,15 +266,15 @@
             <div class="flex items-center gap-3">
                 <div class="w-3 h-3 rounded-full bg-cyan-400 shadow-[0_0_10px_#00f2ff]"></div>
                 <div>
-                    <h1 class="font-orbitron text-lg sm:text-xl font-bold tracking-[0.18em] neon-text">J.A.R.V.I.S. v11.0</h1>
-                    <p class="text-[11px] text-cyan-300/70">HOME-FIRST SEMANTIC AGENT · ALWAYS-ON WHISPER · ROUTER</p>
+                    <h1 class="font-orbitron text-lg sm:text-xl font-bold tracking-[0.18em] neon-text">J.A.R.V.I.S. v11.5</h1>
+                    <p class="text-[11px] text-cyan-300/70">LLM INTENT ROUTER · WHISPER STT ENHANCED · HOME-FIRST SEMANTIC AGENT</p>
                 </div>
             </div>
 
             <div class="flex flex-wrap items-center gap-2 self-end sm:self-auto">
                 <button onclick="openApiConfigModal()" class="hud-panel px-3 py-2 rounded-lg text-xs text-cyan-200 hover:border-cyan-300 flex items-center gap-1.5 cursor-pointer">
                     <span>⚙️</span>
-                    <span>Whisper &amp; LLM 엔진 설정</span>
+                    <span>Whisper STT &amp; LLM Router 설정</span>
                 </button>
                 <div class="hud-panel px-3.5 py-2 rounded-lg min-w-[240px]">
                     <div class="flex items-center justify-between gap-2">
@@ -287,7 +294,7 @@
                 <div class="hud-panel p-3.5 rounded-xl space-y-2.5">
                     <div class="flex items-center justify-between border-b border-cyan-500/30 pb-1.5">
                         <span class="font-orbitron text-xs tracking-wider text-cyan-300 font-bold">HOME-FIRST MODES</span>
-                        <span class="text-[10px] text-emerald-300 font-mono-code">404-FREE v11</span>
+                        <span class="text-[10px] text-emerald-300 font-mono-code">404-FREE v11.5</span>
                     </div>
 
                     <button id="btn-study-mode" onclick="toggleStudyMode()" class="mode-btn w-full p-3 rounded-lg flex items-center justify-between text-left cursor-pointer">
@@ -335,51 +342,69 @@
                 </div>
             </aside>
 
-            <!-- 중앙 (6칸): 상시 마이크(VAD) + Intent Router 대화창 -->
+            <!-- 중앙 (6칸): 고정밀 Whisper STT + LLM Intent Router 대화창 -->
             <section class="lg:col-span-6 flex flex-col justify-between hud-panel p-4 rounded-xl">
                 <div class="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-cyan-500/30 pb-3">
                     <div class="flex items-center gap-3">
-                        <div id="reactor-container" onclick="openStudyingModeWindow()" class="reactor-wrapper !w-20 !h-20 cursor-pointer shrink-0">
+                        <div id="reactor-container" onclick="triggerInstantWhisperRecord()" title="클릭하여 즉시 Whisper 고감도 음성 인식 실행" class="reactor-wrapper !w-20 !h-20 cursor-pointer shrink-0">
                             <div class="reactor-outer"></div>
                             <div class="reactor-ring-1 !inset-1.5"></div>
                             <div class="reactor-core !w-12 !h-12">
                                 <span class="font-orbitron text-[10px] font-black text-white">JARVIS</span>
-                                <span id="core-sub-status" class="font-orbitron text-[7px] text-cyan-300">ONLINE</span>
+                                <span id="core-sub-status" class="font-orbitron text-[7px] text-cyan-300">WHISPER</span>
                             </div>
                         </div>
                         <div>
-                            <div class="flex items-center gap-2">
-                                <span class="font-orbitron text-xs font-bold text-cyan-300">ALWAYS-ON VOICE &amp; ROUTER</span>
+                            <div class="flex flex-wrap items-center gap-1.5">
+                                <span class="font-orbitron text-xs font-bold text-cyan-300">WHISPER STT &amp; LLM ROUTER</span>
                                 <span id="router-intent-badge" class="text-[10px] font-mono-code px-2 py-0.5 rounded bg-purple-500/20 border border-purple-400/50 text-purple-200">
-                                    ROUTER: AUTO
+                                    ROUTER: STANDBY
+                                </span>
+                                <span id="router-confidence-badge" class="text-[10px] font-mono-code px-1.5 py-0.5 rounded bg-cyan-950 border border-cyan-500/40 text-cyan-300">
+                                    CONF: --%
                                 </span>
                             </div>
                             <p id="jarvis-message" class="text-xs text-cyan-100 mt-1">
-                                상시 음성 감지가 작동 중입니다. 작업 명령이나 일상 대화를 편하게 말씀하세요.
+                                Whisper 도메인 프롬프트 보정과 LLM 시맨틱 라우터가 활성화되었습니다. 명령 수행과 일상 대화를 자동으로 판별합니다.
                             </p>
                         </div>
                     </div>
 
-                    <div class="flex flex-col items-end gap-1 shrink-0 w-full sm:w-44">
+                    <div class="flex flex-col items-end gap-1 shrink-0 w-full sm:w-48">
                         <div class="flex items-center justify-between w-full text-[10px] font-mono-code">
-                            <span id="vad-state-label" class="text-emerald-300 font-bold">🎙️ 상시 감지 켜짐</span>
-                            <button id="btn-toggle-always-mic" onclick="toggleAlwaysOnMic()" class="px-2 py-0.5 rounded bg-emerald-500/20 border border-emerald-400 text-emerald-200 cursor-pointer">
-                                ON
-                            </button>
+                            <span id="vad-state-label" class="text-emerald-300 font-bold">🎙️ Whisper 감지 대기</span>
+                            <div class="flex gap-1">
+                                <button id="btn-instant-whisper" onclick="triggerInstantWhisperRecord()" class="px-2 py-0.5 rounded bg-purple-500/20 border border-purple-400 text-purple-200 hover:bg-purple-400 hover:text-slate-950 transition cursor-pointer" title="즉시 Whisper 녹음 시작/전송">
+                                    🎯 정밀녹음
+                                </button>
+                                <button id="btn-toggle-always-mic" onclick="toggleAlwaysOnMic()" class="px-2 py-0.5 rounded bg-emerald-500/20 border border-emerald-400 text-emerald-200 cursor-pointer">
+                                    ON
+                                </button>
+                            </div>
                         </div>
-                        <canvas id="vad-meter-canvas" width="170" height="24" class="w-full h-6 rounded bg-[#02060d] border border-cyan-500/40"></canvas>
-                        <div class="text-[9px] text-cyan-400/70 font-mono-code">VAD 음성 감지 ➔ Whisper STT ➔ LLM</div>
+                        <canvas id="vad-meter-canvas" width="180" height="24" class="w-full h-6 rounded bg-[#02060d] border border-cyan-500/40"></canvas>
+                        <div class="text-[9px] text-cyan-400/70 font-mono-code">Noise Gate ➔ Whisper STT ➔ LLM Router</div>
                     </div>
                 </div>
 
+                <!-- LLM Router 실시간 판별 인스펙터 바 -->
+                <div class="mt-2 px-3 py-1.5 rounded-lg bg-[#030916] border border-cyan-500/30 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                    <div class="flex items-center gap-2">
+                        <span class="font-mono-code text-cyan-400 font-bold">[LLM ROUTER 판별]</span>
+                        <span id="router-analysis-detail" class="text-cyan-100">대기 중 (발화 의도를 COMMAND_EXECUTION 또는 DAILY_CONVERSATION으로 분류)</span>
+                    </div>
+                    <span id="whisper-postproc-badge" class="font-mono-code text-[10px] text-emerald-300">STT 교정 필터: ON</span>
+                </div>
+
                 <!-- 대화 및 제어 로그 스트림 -->
-                <div id="chat-stream-box" class="my-3 h-52 sm:h-60 overflow-y-auto space-y-2.5 pr-1 text-xs">
+                <div id="chat-stream-box" class="my-2.5 h-48 sm:h-56 overflow-y-auto space-y-2.5 pr-1 text-xs">
                     <div class="flex items-start gap-2">
                         <span class="px-2 py-0.5 rounded bg-cyan-500/20 border border-cyan-400/50 text-cyan-300 font-mono-code text-[10px] shrink-0">JARVIS</span>
                         <div class="bg-[#030b18] border border-cyan-500/30 rounded-lg p-2.5 text-cyan-100 leading-relaxed">
-                            이투스 직접 로그인 진입 시 발생하던 <b>404 에러("요청하신 페이지를 찾을 수 없습니다")</b>를 해결하기 위해 <b>무조건 이투스 공식 홈페이지(etoos.com/home/)로 먼저 접속한 뒤 시맨틱 버튼 클릭으로 이동</b>하도록 수정되었습니다.<br>
-                            • <b>제어 명령 예시</b>: "공부 모드 켜줘", "이투스 열어줘", "빗소리 틀어줘"<br>
-                            • <b>일상 대화 예시</b>: "오늘 날씨에 어울리는 저녁 메뉴 추천해줘"
+                            <b>LLM 시맨틱 라우터(Router) &amp; 고정밀 Whisper STT 업그레이드 완료:</b><br>
+                            1. <b>LLM Router</b>: 사용자의 발화 의도가 <b>명령 수행(COMMAND_EXECUTION)</b>인지 <b>일상 대화(DAILY_CONVERSATION)</b>인지 LLM JSON 스키마 및 하이브리드 분류기로 먼저 판별한 뒤 실행합니다.<br>
+                            2. <b>Whisper STT 정확도 향상</b>: Web Audio High-pass 노이즈 필터 + 한국어 도메인 프롬프트(`initial_prompt`) + 발음 오인식 후처리 사전을 결합해 음성 인식률을 높였습니다.<br>
+                            3. <b>보안 강화</b>: 비밀번호 인증 모달에서 자동 입력 기능을 완전히 삭제했습니다.
                         </div>
                     </div>
                 </div>
@@ -387,37 +412,37 @@
                 <div class="flex items-center gap-2 pt-2 border-t border-cyan-500/30">
                     <span id="live-stt-preview" class="hidden text-[11px] text-emerald-300 font-mono-code animate-pulse">🎙️ 인식 중...</span>
                     <input id="jarvis-command-input" type="text"
-                        placeholder="여기에 입력하거나 그냥 마이크로 말씀하세요 (제어/대화 자동 Router 분기)..."
+                        placeholder="명령어('이투스 켜줘', '불 켜줘') 또는 일상 대화('오늘 공부 계획 짜줘')를 입력하거나 말씀하세요..."
                         class="flex-1 bg-[#030812] border border-cyan-500/40 rounded-lg px-3 py-2 text-xs text-white placeholder-cyan-400/45 focus:outline-none focus:border-cyan-300">
                     <button onclick="executeVoiceOrTextCommand()" type="button"
                         class="px-4 py-2 rounded-lg bg-cyan-400 text-slate-950 font-bold text-xs hover:bg-cyan-300 transition shrink-0 cursor-pointer">
-                        전송
+                        Router 전송
                     </button>
                 </div>
             </section>
 
-            <!-- 우측 (3칸): 시맨틱 텔레메트리 -->
+            <!-- 우측 (3칸): 라우터 & Whisper 텔레메트리 -->
             <div class="lg:col-span-3 flex flex-col justify-between gap-3">
                 <div class="hud-panel p-3.5 rounded-xl space-y-2">
                     <div class="flex items-center justify-between border-b border-cyan-500/30 pb-1.5">
-                        <span class="font-orbitron text-[11px] text-cyan-400 font-bold">SEMANTIC TELEMETRY</span>
+                        <span class="font-orbitron text-[11px] text-cyan-400 font-bold">ROUTER &amp; WHISPER STATUS</span>
                         <span id="telemetry-active-preset" class="text-[10px] px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-mono-code">MODE: NONE</span>
                     </div>
                     <div class="text-xs text-cyan-200/80 flex justify-between">
-                        <span>초기 진입 경로</span>
-                        <span class="font-mono-code text-emerald-300 font-bold">etoos.com/home/ 고정</span>
+                        <span>LLM Intent Router</span>
+                        <span id="telemetry-router-mode" class="font-mono-code text-emerald-300 font-bold">LLM + SEMANTIC</span>
                     </div>
                     <div class="text-xs text-cyan-200/80 flex justify-between">
-                        <span>404 에러 복구 가드</span>
-                        <span class="font-mono-code text-cyan-300">ACTIVE (자동 홈 복귀)</span>
+                        <span>최근 판별 의도</span>
+                        <span id="telemetry-last-intent" class="font-mono-code text-purple-300">NONE</span>
                     </div>
                     <div class="text-xs text-cyan-200/80 flex justify-between">
-                        <span>광고 오클릭 차단</span>
-                        <span class="font-mono-code text-emerald-300">elementFromPoint 가드</span>
+                        <span>Whisper STT 엔진</span>
+                        <span id="telemetry-whisper-mode" class="font-mono-code text-amber-300">Prompt + Denoise</span>
                     </div>
                     <div class="text-xs text-cyan-200/80 flex justify-between">
-                        <span>음성 STT 파이프라인</span>
-                        <span class="font-mono-code text-amber-300">VAD ➔ Whisper ➔ LLM</span>
+                        <span>보안 인증 정책</span>
+                        <span class="font-mono-code text-emerald-300">수동 입력 전용 (No Auto)</span>
                     </div>
                     <div class="text-xs text-cyan-200/80 flex justify-between">
                         <span>현재 시각</span>
@@ -426,13 +451,14 @@
 
                     <div class="pt-1">
                         <div class="text-[10px] text-cyan-400/70 mb-1 flex justify-between">
-                            <span>ENTRY ROUTE GUARANTEE</span>
-                            <span class="font-mono-code text-emerald-300">NO DIRECT LOGIN URL</span>
+                            <span>ROUTER DECISION PIPELINE</span>
+                            <span class="font-mono-code text-emerald-300">2-WAY DISPATCH</span>
                         </div>
                         <div class="p-2 rounded bg-[#030812] border border-cyan-500/40 text-[10px] font-mono-code text-cyan-200 space-y-0.5">
-                            <div>1. etoos.com/home/ 접속</div>
-                            <div>2. [로그인] 시맨틱 클릭 (비로그인 시)</div>
-                            <div>3. [마이룸] ➔ [팝업X] ➔ [수강중강좌]</div>
+                            <div>1. Whisper STT (도메인 사전 보정)</div>
+                            <div>2. LLM Router (명령 vs 일상대화 판별)</div>
+                            <div>3A. [명령] 시스템/이투스/조명 실행</div>
+                            <div>3B. [일상대화] LLM 자연어 응답 생성</div>
                         </div>
                     </div>
                 </div>
@@ -448,7 +474,7 @@
                 </div>
                 <div id="add-schedule-form" class="hidden mb-2 p-2 rounded bg-[#030812] border border-cyan-500/40 space-y-1.5">
                     <div class="flex gap-2">
-                        <input type="date" id="new-sched-date" value="2026-11-13" class="w-1/2 px-2 py-1 rounded bg-slate-900 border border-cyan-500/40 text-xs text-white">
+                        <input type="date" id="new-sched-date" value="2026-11-14" class="w-1/2 px-2 py-1 rounded bg-slate-900 border border-cyan-500/40 text-xs text-white">
                         <input type="time" id="new-sched-time" value="20:30" class="w-1/2 px-2 py-1 rounded bg-slate-900 border border-cyan-500/40 text-xs text-white">
                     </div>
                     <div class="flex gap-2">
@@ -616,37 +642,41 @@
         </div>
     </div>
 
-    <!-- ⚙️ 5. Whisper & LLM API 설정 모달 -->
+    <!-- ⚙️ 5. Whisper STT & LLM Router 설정 모달 -->
     <div id="api-config-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 backdrop-blur-sm px-4">
-        <div class="hud-panel w-full max-w-md p-6 rounded-xl space-y-4">
+        <div class="hud-panel w-full max-w-lg p-6 rounded-xl space-y-4">
             <div class="flex justify-between items-center border-b border-cyan-500/30 pb-2">
-                <span class="font-orbitron text-sm font-bold text-cyan-300">⚙️ WHISPER STT &amp; LLM ROUTER 설정</span>
-                <button onclick="closeApiConfigModal()" class="text-cyan-400 hover:text-white text-lg">&times;</button>
+                <span class="font-orbitron text-sm font-bold text-cyan-300">⚙️ WHISPER STT 정확도 &amp; LLM ROUTER 설정</span>
+                <button onclick="closeApiConfigModal()" class="text-cyan-400 hover:text-white text-lg cursor-pointer">&times;</button>
             </div>
             <div class="space-y-3 text-xs">
                 <div>
-                    <label class="block text-cyan-300 mb-1 font-bold">OpenAI API Key (Whisper `whisper-1` &amp; GPT-4o-mini)</label>
-                    <input id="cfg-openai-key" type="password" placeholder="sk-..." class="w-full px-3 py-2 rounded bg-[#030710] border border-cyan-500/50 text-white font-mono-code">
+                    <label class="block text-cyan-300 mb-1 font-bold">OpenAI API Key (Whisper `whisper-1` 고정밀 STT &amp; LLM Router)</label>
+                    <input id="cfg-openai-key" type="password" autocomplete="off" placeholder="sk-..." class="w-full px-3 py-2 rounded bg-[#030710] border border-cyan-500/50 text-white font-mono-code">
                 </div>
                 <div>
-                    <label class="block text-cyan-300 mb-1 font-bold">Gemini API Key (선택)</label>
-                    <input id="cfg-gemini-key" type="password" placeholder="AIzaSy..." class="w-full px-3 py-2 rounded bg-[#030710] border border-cyan-500/50 text-white font-mono-code">
+                    <label class="block text-cyan-300 mb-1 font-bold">Gemini API Key (LLM Router &amp; 일상 대화 생성)</label>
+                    <input id="cfg-gemini-key" type="password" autocomplete="off" placeholder="AIzaSy..." class="w-full px-3 py-2 rounded bg-[#030710] border border-cyan-500/50 text-white font-mono-code">
                 </div>
                 <div>
-                    <label class="block text-cyan-300 mb-1 font-bold">로컬 LLM (Ollama) URL</label>
-                    <input id="cfg-ollama-url" type="text" value="http://localhost:11434/api/generate" class="w-full px-3 py-2 rounded bg-[#030710] border border-cyan-500/50 text-white font-mono-code">
+                    <label class="block text-cyan-300 mb-1 font-bold">로컬 Whisper STT 서버 엔드포인트 (선택 - Faster-Whisper / Whisper.cpp)</label>
+                    <input id="cfg-whisper-url" type="text" placeholder="예: https://your-whisper-endpoint.example.com/v1/audio/transcriptions" class="w-full px-3 py-2 rounded bg-[#030710] border border-cyan-500/50 text-white font-mono-code">
+                </div>
+                <div>
+                    <label class="block text-cyan-300 mb-1 font-bold">Whisper 도메인 컨텍스트 프롬프트 (음성 인식 정확도 향상용 핵심 어휘)</label>
+                    <textarea id="cfg-whisper-prompt" rows="2" class="w-full px-3 py-2 rounded bg-[#030710] border border-cyan-500/50 text-white text-xs">자비스, 공부 모드, 코딩 모드, 게임 모드, 휴식 모드, 이투스, 마이룸, 수강중 강좌, EBSi, 백색소음, 브라운 노이즈, 바이노럴 비트, 빗소리, 조명 켜줘, 불 꺼줘, 일정 추가</textarea>
                 </div>
             </div>
-            <div class="flex justify-end pt-2">
-                <button onclick="saveApiConfig()" class="px-4 py-2 rounded bg-cyan-400 text-slate-950 font-bold text-xs cursor-pointer">저장</button>
+            <div class="flex justify-end gap-2 pt-2">
+                <button onclick="closeApiConfigModal()" class="px-4 py-2 rounded border border-cyan-500/40 text-cyan-300 text-xs cursor-pointer">취소</button>
+                <button onclick="saveApiConfig()" class="px-4 py-2 rounded bg-cyan-400 text-slate-950 font-bold text-xs cursor-pointer">설정 저장</button>
             </div>
         </div>
     </div>
 
     <script>
         // =========================================================================
-        // 🌐 0. 클라우드 동기화 및 상수 정의
-        //       핵심: 이투스 진입 URL은 오직 ETOOS_HOME_URL("https://www.etoos.com/home/")만 사용!
+        // 🌐 0. 클라우드 동기화 및 상수 정의 (localStorage 안전 래퍼 포함)
         // =========================================================================
         const ETOOS_HOME_URL = "https://www.etoos.com/home/";
         const EBSI_HOME_URL = "https://www.ebsi.co.kr/";
@@ -657,6 +687,22 @@
 
         const CLIENT_SESSION_ID = "client_" + Math.random().toString(36).slice(2, 10);
         const SYSTEM_PW = "20dudcjsrh09kakaku!@#~";
+
+        const memoryStorage = {};
+        function safeGetStorage(key, fallback = "") {
+            try {
+                const v = localStorage.getItem(key);
+                return v !== null ? v : (memoryStorage[key] || fallback);
+            } catch (e) {
+                return memoryStorage[key] || fallback;
+            }
+        }
+        function safeSetStorage(key, val) {
+            memoryStorage[key] = val;
+            try { localStorage.setItem(key, val); } catch (e) {}
+        }
+
+        const DEFAULT_WHISPER_PROMPT = "자비스, 공부 모드, 코딩 모드, 게임 모드, 휴식 모드, 이투스, 마이룸, 수강중 강좌, EBSi, 백색소음, 브라운 노이즈, 바이노럴 비트, 빗소리, 조명 켜줘, 불 꺼줘, 일정 추가";
 
         let isApplyingRemoteState = false;
         let lastHandledCommandTimestamp = 0;
@@ -670,8 +716,8 @@
         let selectedDateFilter = null;
 
         let schedules = [
-            { id: 1, date: "2026-11-13", time: "20:30", title: "이투스 홈페이지 ➔ 마이룸 ➔ 수강중 강좌 학습" },
-            { id: 2, date: "2026-11-16", time: "18:00", title: "로컬 LLM & Whisper 음성 비서 점검" }
+            { id: 1, date: "2026-11-14", time: "20:30", title: "이투스 홈페이지 ➔ 마이룸 ➔ 수강중 강좌 학습" },
+            { id: 2, date: "2026-11-16", time: "18:00", title: "LLM Router & Whisper 음성 비서 점검" }
         ];
 
         // =========================================================================
@@ -709,21 +755,17 @@
             const overlayDesc = document.getElementById("overlay-desc");
             const urlInd = document.getElementById("sem-url-indicator");
 
-            // ★ 핵심 수정: 실제 브라우저 새 탭을 열 때 절대 /login 이나 /mystudyroom 으로 바로 가지 않고
-            // 무조건 이투스 공식 홈페이지(https://www.etoos.com/home/)로만 진입하여 404 에러를 100% 방지!
             if (openRealTab) {
                 const safeEntryUrl = targetSite === "ebsi" ? EBSI_HOME_URL : ETOOS_HOME_URL;
                 window.open(safeEntryUrl, "_blank", "noopener");
             }
 
-            // Step 1: 무조건 이투스 공식 홈페이지로 먼저 접속
             if (urlInd) urlInd.innerText = `URL: ${ETOOS_HOME_URL}`;
             setPopupFeedback("⏳ Step 1: 이투스 공식 홈페이지(https://www.etoos.com/home/) 접속 완료!", "#00f2ff");
             appendEtoosLog(`✅ Step 1: 직접 로그인 URL 대신 공식 홈페이지(${ETOOS_HOME_URL})로 안전 진입 완료!`, "text-cyan-300 font-bold");
             setScannerStatus("Step 1: 이투스 홈페이지 DOM 로드 및 헤더 영역('로그인' vs '로그아웃') 시맨틱 분석");
             await sleep(650);
 
-            // 만약 404 에러 페이지가 떴을 때의 자동 복구 시뮬레이션
             if (envAd === "err_404") {
                 if (adOverlay) {
                     adOverlay.classList.remove("hidden");
@@ -741,26 +783,23 @@
                 await sleep(500);
             }
 
-            // Step 2: 로그인 여부 판별 및 분기
             if (envLogin === "logged_in") {
                 appendEtoosLog(`✅ Step 2: 홈페이지 상단에 '로그아웃' 텍스트 존재 확인 (이미 로그인됨) ➔ [로그인] 과정 생략!`, "text-emerald-300 font-bold");
             } else {
                 setPopupFeedback("🔑 Step 2: 비로그인 상태 ➔ 홈페이지 상단 [로그인] 버튼 시맨틱 클릭", "#ffb84d");
                 appendEtoosLog(`🖱️ Step 2: 홈페이지 상단 [로그인] 요소를 찾아 클릭 ➔ 로그인 화면으로 정상 이동`, "text-amber-300");
-                setScannerStatus("Step 2: 홈페이지 내 [로그인] 버튼 클릭 ➔ ID(hera47)/PW 주입 후 Submit", "border-amber-400 text-amber-200");
+                setScannerStatus("Step 2: 홈페이지 내 [로그인] 버튼 클릭 ➔ 사용자 인증 후 Submit", "border-amber-400 text-amber-200");
                 await sleep(750);
                 appendEtoosLog(`✅ Step 2-B: 로그인 완료 후 이투스 홈페이지(${ETOOS_HOME_URL})로 자동 복귀 완료`, "text-cyan-200");
                 await sleep(550);
             }
 
-            // Step 3: 홈페이지 상단 [마이룸] 버튼 클릭
             setPopupFeedback("🖱️ Step 3: 홈페이지 상단 [마이룸] 버튼 시맨틱 탐색 및 클릭", "#00f2ff");
             setScannerStatus("Step 3: 홈페이지 내 '마이룸' 요소 클릭 ➔ 마이룸 진입", "border-emerald-400 text-emerald-200");
             appendEtoosLog(`➡️ Step 3: 홈페이지 상단 [마이룸] 버튼 클릭 완료`, "text-emerald-300");
             if (urlInd) urlInd.innerText = "URL: https://www.etoos.com/mystudyroom/ (홈 경유 정상 진입)";
             await sleep(650);
 
-            // Step 4: 마이룸 진입 시 똑같은 위치를 가리는 미니테스트/광고 팝업 감지 및 제거
             if (envAd === "ad_overlap") {
                 if (adOverlay) {
                     adOverlay.classList.remove("hidden");
@@ -778,7 +817,6 @@
                 await sleep(450);
             }
 
-            // Step 5: 최종 목적지 [수강중 강좌] 클릭
             setPopupFeedback("🎓 Step 5: [마이룸 ➔ 수강중 강좌] 최종 진입 완료!", "#00ffaa");
             setScannerStatus("✅ 최종 도달 완료: [이투스 홈 ➔ 마이룸 ➔ 수강중 강좌] (404 및 광고 오클릭 0건)", "border-emerald-400 text-emerald-300 font-bold");
             appendEtoosLog(`🎯 Step 5: [수강중 강좌] 시맨틱 요소 클릭 완료! 최종 화면: 마이룸 > 수강중 강좌`, "text-emerald-400 font-bold");
@@ -797,21 +835,197 @@
         }
 
         // =========================================================================
-        // 🧠 2. 인텐트 라우터 (Intent Router: 제어 명령 vs 일상 자유 대화 분기)
+        // 🧠 2. 일반 LLM 활용 Semantic Intent Router (명령 수행 vs 일상 대화 정밀 판별)
         // =========================================================================
-        function classifyUserIntent(text) {
-            const t = (text || "").trim().toLowerCase();
-            const controlPatterns = [
-                /공부\s*모드/, /코딩\s*모드/, /게임\s*모드/, /휴식\s*모드/,
-                /이투스\s*(열어|켜|틀어|로그인|가자|실행|접속)/, /수강중\s*강좌/, /마이룸\s*(열어|가자|실행)/,
-                /ebs\s*(열어|켜|로그인)/, /인강\s*(열어|켜|틀어)/,
-                /(백색\s*소음|브라운\s*노이즈|빗소리|바이노럴)\s*(틀어|켜|재생|꺼|중지)/,
-                /(불|조명)\s*(켜|꺼)/, /화면\s*분할/, /창\s*분할/
-            ];
-            if (controlPatterns.some(rx => rx.test(t)) || ["공부 모드", "코딩 모드", "게임 모드", "휴식 모드", "이투스", "이투스 열어", "빗소리 틀어"].includes(t)) {
-                return "SYSTEM_CONTROL";
+        const ROUTER_SYSTEM_PROMPT = `당신은 AI 비서 J.A.R.V.I.S.의 Semantic Intent Router(의도 분류기)입니다.
+사용자의 입력 문장을 분석하여 목적이 '명령 수행(COMMAND_EXECUTION)'인지 '일상 대화(DAILY_CONVERSATION)'인지 판별하고 반드시 아래 JSON 형식으로만 응답하세요.
+
+[분류 기준]
+1. COMMAND_EXECUTION (명령 수행):
+   - 공부 모드, 코딩 모드, 게임 모드, 휴식 모드 실행/전환
+   - 이투스(Etoos), 마이룸, 수강중 강좌, EBSi, 인강 사이트 열기/접속/로그인
+   - 조명(불) 켜기/끄기, 화면 밝기(조도) 조절
+   - 백색소음(브라운 노이즈, 빗소리, 바이노럴 비트) 재생/켜기/끄기/중지
+   - 스케줄(일정) 추가/등록
+   - 주의: 단순히 "이투스가 뭐야?", "공부 어떻게 할까?"처럼 질문/상담을 하는 문장은 일상 대화(DAILY_CONVERSATION)입니다.
+
+2. DAILY_CONVERSATION (일상 대화):
+   - 일상적인 안부, 잡담, 학습 고민 상담, 지식 질문, 메뉴 추천, 코딩/과학 질문, 계획 조언 등 시스템 직접 제어가 아닌 모든 대화
+
+[JSON 출력 포맷]
+{
+  "intent": "COMMAND_EXECUTION" 또는 "DAILY_CONVERSATION",
+  "action_type": "ETOOS" | "EBSI" | "MODE_STUDY" | "MODE_CODING" | "MODE_GAME" | "MODE_REST" | "LIGHT_ON" | "LIGHT_OFF" | "LIGHT_TOGGLE" | "NOISE_BROWN" | "NOISE_RAIN" | "NOISE_BINAURAL" | "NOISE_STOP" | "SCHEDULE_ADD" | "NONE",
+  "confidence": 0.0~1.0 사이 실수,
+  "reason": "판별 이유 1줄 요약",
+  "reply": "DAILY_CONVERSATION일 경우 사용자에게 건넬 한국어 자연어 답변(2~3문장), COMMAND_EXECUTION일 경우 빈 문자열"
+}`;
+
+        // 로컬 시맨틱 스코어링 라우터 (API 키 미설정 시 또는 폴백용)
+        function localSemanticRouterClassify(text) {
+            const raw = (text || "").trim();
+            const t = raw.toLowerCase();
+
+            // 질문형/대화형 어미 감지 (예: "이투스가 뭐야?", "공부 모드란 무엇인가요?", "비 오는데 뭐 먹을까?")
+            const isQuestionOrChat = /(뭐야|무엇|어떻게|왜|할까|해줄래|알려줘|설명해|추천해|고민|힘들다|안녕|반가워|누구|몇\s*시|날씨|\?)/.test(t) &&
+                !/(열어\s*줄래|켜\s*줄래|꺼\s*줄래|틀어\s*줄래|실행해\s*줄래|접속해\s*줄래)/.test(t);
+
+            if (isQuestionOrChat) {
+                return {
+                    intent: "DAILY_CONVERSATION",
+                    action_type: "NONE",
+                    confidence: 0.92,
+                    reason: "질문/상담/일상 대화 문맥 감지 (비제어 발화)",
+                    source: "SEMANTIC-RULE"
+                };
             }
-            return "GENERAL_CHAT";
+
+            // 명시적 제어 명령 패턴 매칭
+            if (/(이투스|etoos|수강\s*중|마이룸|인강).*(열어|켜|틀어|로그인|가자|실행|접속|시작)|^(이투스|마이룸|수강중\s*강좌)$/.test(t)) {
+                return { intent: "COMMAND_EXECUTION", action_type: "ETOOS", confidence: 0.98, reason: "이투스 홈페이지 선행 접속 및 수강중 강좌 진입 명령", source: "SEMANTIC-RULE" };
+            }
+            if (/(ebsi|ebs|이비에스).*(열어|켜|틀어|로그인|실행|접속)|^(ebsi|ebs)$/.test(t)) {
+                return { intent: "COMMAND_EXECUTION", action_type: "EBSI", confidence: 0.97, reason: "EBSi 홈페이지 접속 명령", source: "SEMANTIC-RULE" };
+            }
+            if (/(공부\s*모드|학습\s*모드).*(켜|실행|시작|바꿔|전환)|^공부\s*모드$/.test(t)) {
+                return { intent: "COMMAND_EXECUTION", action_type: "MODE_STUDY", confidence: 0.98, reason: "공부 모드 워크스페이스 프리셋 실행 명령", source: "SEMANTIC-RULE" };
+            }
+            if (/(코딩\s*모드|개발\s*모드).*(켜|실행|시작|바꿔|전환)|^코딩\s*모드$/.test(t)) {
+                return { intent: "COMMAND_EXECUTION", action_type: "MODE_CODING", confidence: 0.98, reason: "코딩 모드 워크스페이스 프리셋 실행 명령", source: "SEMANTIC-RULE" };
+            }
+            if (/(게임\s*모드).*(켜|실행|시작|바꿔|전환)|^게임\s*모드$/.test(t)) {
+                return { intent: "COMMAND_EXECUTION", action_type: "MODE_GAME", confidence: 0.98, reason: "게임 모드 워크스페이스 프리셋 실행 명령", source: "SEMANTIC-RULE" };
+            }
+            if (/(휴식\s*모드|쉬는\s*모드).*(켜|실행|시작|바꿔|전환)|^휴식\s*모드$/.test(t)) {
+                return { intent: "COMMAND_EXECUTION", action_type: "MODE_REST", confidence: 0.98, reason: "휴식 모드 워크스페이스 프리셋 실행 명령", source: "SEMANTIC-RULE" };
+            }
+            if (/(백색\s*소음|브라운\s*노이즈|빗소리|바이노럴).*(꺼|중지|정지|멈춰)/.test(t)) {
+                return { intent: "COMMAND_EXECUTION", action_type: "NOISE_STOP", confidence: 0.96, reason: "백색소음 재생 정지 명령", source: "SEMANTIC-RULE" };
+            }
+            if (/빗소리.*(틀어|켜|재생|시작)|^빗소리$/.test(t)) {
+                return { intent: "COMMAND_EXECUTION", action_type: "NOISE_RAIN", confidence: 0.96, reason: "빗소리 백색소음 재생 명령", source: "SEMANTIC-RULE" };
+            }
+            if (/바이노럴.*(틀어|켜|재생|시작)|^바이노럴$/.test(t)) {
+                return { intent: "COMMAND_EXECUTION", action_type: "NOISE_BINAURAL", confidence: 0.96, reason: "바이노럴 비트 재생 명령", source: "SEMANTIC-RULE" };
+            }
+            if (/(백색\s*소음|브라운\s*노이즈).*(틀어|켜|재생|시작)|^(백색\s*소음|브라운\s*노이즈)$/.test(t)) {
+                return { intent: "COMMAND_EXECUTION", action_type: "NOISE_BROWN", confidence: 0.96, reason: "브라운 노이즈 재생 명령", source: "SEMANTIC-RULE" };
+            }
+            if (/(불|조명|전등).*(켜|밝게)/.test(t)) {
+                return { intent: "COMMAND_EXECUTION", action_type: "LIGHT_ON", confidence: 0.97, reason: "스마트 조명 켜기 명령", source: "SEMANTIC-RULE" };
+            }
+            if (/(불|조명|전등).*(꺼|어둡게)/.test(t)) {
+                return { intent: "COMMAND_EXECUTION", action_type: "LIGHT_OFF", confidence: 0.97, reason: "스마트 조명 끄기 명령", source: "SEMANTIC-RULE" };
+            }
+            if (/일정.*(추가|등록)/.test(t)) {
+                return { intent: "COMMAND_EXECUTION", action_type: "SCHEDULE_ADD", confidence: 0.91, reason: "스케줄 캘린더 일정 등록 명령", source: "SEMANTIC-RULE" };
+            }
+
+            return {
+                intent: "DAILY_CONVERSATION",
+                action_type: "NONE",
+                confidence: 0.90,
+                reason: "일반 일상 대화 및 질의응답으로 분류",
+                source: "SEMANTIC-RULE"
+            };
+        }
+
+        // LLM 기반 Router 호출 (OpenAI GPT-4o-mini JSON mode 또는 Gemini JSON 응답 활용)
+        async function classifyUserIntentWithLLMRouter(userUtterance) {
+            const openaiKey = safeGetStorage("jarvis_openai_key");
+            const geminiKey = safeGetStorage("jarvis_gemini_key");
+
+            // 1) OpenAI LLM Router (response_format: json_object)
+            if (openaiKey) {
+                try {
+                    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "Authorization": `Bearer ${openaiKey}`
+                        },
+                        body: JSON.stringify({
+                            model: "gpt-4o-mini",
+                            response_format: { type: "json_object" },
+                            temperature: 0.1,
+                            messages: [
+                                { role: "system", content: ROUTER_SYSTEM_PROMPT },
+                                { role: "user", content: userUtterance }
+                            ]
+                        })
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        const parsed = JSON.parse(data.choices[0].message.content);
+                        return {
+                            intent: parsed.intent === "COMMAND_EXECUTION" ? "COMMAND_EXECUTION" : "DAILY_CONVERSATION",
+                            action_type: parsed.action_type || "NONE",
+                            confidence: typeof parsed.confidence === "number" ? parsed.confidence : 0.95,
+                            reason: parsed.reason || "OpenAI LLM Router 판별 완료",
+                            reply: parsed.reply || "",
+                            source: "OPENAI-LLM-ROUTER"
+                        };
+                    }
+                } catch (e) {}
+            }
+
+            // 2) Gemini LLM Router (responseMimeType: application/json)
+            if (geminiKey) {
+                try {
+                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                             contents: [{ parts: [{ text: `${ROUTER_SYSTEM_PROMPT}\n\n사용자 입력: "${userUtterance}"` }] }],
+                            generationConfig: { responseMimeType: "application/json", temperature: 0.1 }
+                        })
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        const rawJson = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+                        const parsed = JSON.parse(rawJson);
+                        return {
+                            intent: parsed.intent === "COMMAND_EXECUTION" ? "COMMAND_EXECUTION" : "DAILY_CONVERSATION",
+                            action_type: parsed.action_type || "NONE",
+                            confidence: typeof parsed.confidence === "number" ? parsed.confidence : 0.95,
+                            reason: parsed.reason || "Gemini LLM Router 판별 완료",
+                            reply: parsed.reply || "",
+                            source: "GEMINI-LLM-ROUTER"
+                        };
+                    }
+                } catch (e) {}
+            }
+
+            // 3) API 키가 없을 때는 내장 시맨틱 라우터로 즉시 분류
+            return localSemanticRouterClassify(userUtterance);
+        }
+
+        function updateRouterInspectorUI(decision) {
+            const badgeEl = document.getElementById("router-intent-badge");
+            const confEl = document.getElementById("router-confidence-badge");
+            const detailEl = document.getElementById("router-analysis-detail");
+            const telIntent = document.getElementById("telemetry-last-intent");
+            const telMode = document.getElementById("telemetry-router-mode");
+
+            const pct = Math.round((decision.confidence || 0.92) * 100);
+            if (confEl) confEl.innerText = `CONF: ${pct}%`;
+            if (telMode) telMode.innerText = decision.source || "LLM ROUTER";
+
+            if (decision.intent === "COMMAND_EXECUTION") {
+                if (badgeEl) {
+                    badgeEl.innerText = `ROUTER: 명령 수행 (${decision.action_type})`;
+                    badgeEl.className = "text-[10px] font-mono-code px-2 py-0.5 rounded bg-cyan-500/20 border border-cyan-400 text-cyan-200";
+                }
+                if (telIntent) telIntent.innerText = `COMMAND (${decision.action_type})`;
+                if (detailEl) detailEl.innerText = `⚡ [명령 수행 판별] ${decision.reason} (${decision.source})`;
+            } else {
+                if (badgeEl) {
+                    badgeEl.innerText = "ROUTER: 일상 대화 (LLM CHAT)";
+                    badgeEl.className = "text-[10px] font-mono-code px-2 py-0.5 rounded bg-emerald-500/20 border border-emerald-400 text-emerald-200";
+                }
+                if (telIntent) telIntent.innerText = "DAILY_CHAT";
+                if (detailEl) detailEl.innerText = `💬 [일상 대화 판별] ${decision.reason} (${decision.source})`;
+            }
         }
 
         function appendChatMessage(sender, text, badgeText = "") {
@@ -852,10 +1066,14 @@
             } catch (e) {}
         }
 
-        async function generateLLMChatResponse(userPrompt) {
-            const openaiKey = localStorage.getItem("jarvis_openai_key") || "";
-            const geminiKey = localStorage.getItem("jarvis_gemini_key") || "";
-            const ollamaUrl = localStorage.getItem("jarvis_ollama_url") || "http://localhost:11434/api/generate";
+        // 일상 대화용 자연어 응답 생성기 (API 없을 때도 문맥형 대화 제공)
+        async function generateLLMChatResponse(userPrompt, preGeneratedReply = "") {
+            if (preGeneratedReply && preGeneratedReply.trim().length > 2) {
+                return preGeneratedReply.trim();
+            }
+
+            const openaiKey = safeGetStorage("jarvis_openai_key");
+            const geminiKey = safeGetStorage("jarvis_gemini_key");
 
             if (openaiKey) {
                 try {
@@ -865,7 +1083,7 @@
                         body: JSON.stringify({
                             model: "gpt-4o-mini",
                             messages: [
-                                { role: "system", content: "당신은 J.A.R.V.I.S. AI 비서입니다. 한국어로 핵심만 명쾌하게 2~3문장 내에 답변하세요." },
+                                { role: "system", content: "당신은 J.A.R.V.I.S. AI 파트너입니다. 사용자의 일상 대화나 질문에 친근하고 명쾌하게 2~3문장으로 답변하세요." },
                                 { role: "user", content: userPrompt }
                             ]
                         })
@@ -883,7 +1101,7 @@
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({
-                            contents: [{ parts: [{ text: `당신은 AI 비서 J.A.R.V.I.S.입니다. 한국어로 간결하고 명확하게 답변하세요.\n질문: ${userPrompt}` }] }]
+                            contents: [{ parts: [{ text: `당신은 AI 비서 J.A.R.V.I.S.입니다. 사용자의 일상 대화에 친절하고 명쾌하게 2~3문장으로 답변하세요.\n질문: ${userPrompt}` }] }]
                         })
                     });
                     if (res.ok) {
@@ -893,86 +1111,147 @@
                 } catch (e) {}
             }
 
-            try {
-                const res = await fetch(ollamaUrl, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        model: "llama3",
-                        prompt: `당신은 AI 비서 JARVIS입니다. 한국어로 간결히 답하세요.\n질문: ${userPrompt}\n답변:`,
-                        stream: false
-                    })
-                });
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data.response) return data.response.trim();
-                }
-            } catch (e) {}
-
-            return `"${userPrompt}"에 대해 말씀하셨군요. 언제든 공부 모드("공부 모드 켜줘")나 이투스("이투스 열어줘") 실행을 명령하시거나 궁금한 점을 물어보세요.`;
+            // 내장 대화형 응답 엔진 (일상 대화 예시 대응)
+            const q = userPrompt.toLowerCase();
+            if (q.includes("안녕") || q.includes("반가")) {
+                return "안녕하세요! J.A.R.V.I.S. 시맨틱 라우터와 Whisper 음성 인식 시스템이 정상 가동 중입니다. 오늘 어떤 학습이나 작업을 도와드릴까요?";
+            }
+            if (q.includes("메뉴") || q.includes("배고") || q.includes("저녁") || q.includes("점심")) {
+                return "집중력을 높여야 하는 날에는 따뜻한 국밥이나 단백질이 풍부한 연어 덮밥, 혹은 가벼운 샌드위치를 추천합니다. 식사 후에는 휴식 모드로 잠시 재충전해 보세요!";
+            }
+            if (q.includes("공부") || q.includes("집중") || q.includes("계획")) {
+                return "효율적인 학습을 위해 50분 집중 학습 후 10분 휴식하는 포모도로 루틴을 추천합니다. 준비되셨을 때 '공부 모드 켜줘'라고 말씀하시면 브라운 노이즈와 이투스 강좌 화면을 바로 세팅해 드릴게요.";
+            }
+            if (q.includes("날씨") || q.includes("비")) {
+                return "실내 학습 환경의 쾌적함을 유지하는 것이 중요합니다. 차분한 분위기가 필요하시면 '빗소리 틀어줘'라고 말씀해 보세요.";
+            }
+            return `[일상 대화 모드] "${userPrompt}"에 대해 잘 들었습니다. 시스템 제어가 아닌 일반 대화로 분류되어 답변드리며, 언제든 "공부 모드 켜줘"나 "이투스 열어줘"처럼 명령을 내리실 수 있습니다.`;
         }
 
-        async function routeAndProcessUtterance(utterance, fromRemote = false, sttLabel = "VOICE/TEXT") {
-            const text = (utterance || "").trim();
-            if (!text) return;
-
-            const intent = classifyUserIntent(text);
-            const badgeEl = document.getElementById("router-intent-badge");
-            appendChatMessage("USER", text, sttLabel);
-
-            if (!fromRemote) {
-                patchCloudState({ remoteCmd: { type: "utterance", value: text, ts: Date.now() } });
+        function executeRoutedCommand(decision, rawText, fromRemote = false) {
+            const act = decision.action_type;
+            if (act === "ETOOS") {
+                runEtoosSmartLoginOnly(fromRemote);
+                return "이투스 공식 홈페이지(etoos.com/home/)로 먼저 접속한 뒤 [로그인 ➔ 마이룸 ➔ 광고 닫기 ➔ 수강중 강좌] 시맨틱 이동을 수행합니다.";
             }
-
-            if (intent === "SYSTEM_CONTROL") {
-                if (badgeEl) {
-                    badgeEl.innerText = "ROUTER: SYSTEM_CONTROL";
-                    badgeEl.className = "text-[10px] font-mono-code px-2 py-0.5 rounded bg-cyan-500/20 border border-cyan-400 text-cyan-200";
-                }
-                const ctrlMsg = executeSystemControlCommand(text, fromRemote);
-                appendChatMessage("JARVIS", ctrlMsg, "⚡ [ROUTER ➔ SYSTEM_CONTROL]");
-                speakJarvisReply(ctrlMsg);
-            } else {
-                if (badgeEl) {
-                    badgeEl.innerText = "ROUTER: GENERAL_CHAT (LLM)";
-                    badgeEl.className = "text-[10px] font-mono-code px-2 py-0.5 rounded bg-emerald-500/20 border border-emerald-400 text-emerald-200";
-                }
-                const reply = await generateLLMChatResponse(text);
-                setJarvisMessage(reply);
-                appendChatMessage("JARVIS", reply, "💬 [ROUTER ➔ LLM GENERAL_CHAT]");
-                speakJarvisReply(reply);
+            if (act === "EBSI") {
+                runEbsiLoginSequence(fromRemote);
+                return "EBSi 공식 홈페이지로 안전하게 접속합니다.";
             }
+            if (act === "MODE_STUDY") return activateWorkspacePreset("study", null, true, fromRemote);
+            if (act === "MODE_CODING") return activateWorkspacePreset("coding", null, true, fromRemote);
+            if (act === "MODE_GAME") return activateWorkspacePreset("game", null, true, fromRemote);
+            if (act === "MODE_REST") return activateWorkspacePreset("rest", null, true, fromRemote);
+            if (act === "NOISE_STOP") return stopWhiteNoise();
+            if (act === "NOISE_RAIN") return startWhiteNoise("rain", 0.35);
+            if (act === "NOISE_BINAURAL") return startWhiteNoise("binaural", 0.28);
+            if (act === "NOISE_BROWN") return startWhiteNoise("brown", 0.32);
+            if (act === "LIGHT_ON") {
+                if (!isLightOn) toggleLightMode(fromRemote);
+                return "스마트 조명을 켰습니다.";
+            }
+            if (act === "LIGHT_OFF") {
+                if (isLightOn) toggleLightMode(fromRemote);
+                return "스마트 조명을 껐습니다.";
+            }
+            if (act === "LIGHT_TOGGLE") {
+                toggleLightMode(fromRemote);
+                return isLightOn ? "스마트 조명을 켰습니다." : "스마트 조명을 껐습니다.";
+            }
+            if (act === "SCHEDULE_ADD") {
+                const cleanedTitle = rawText.replace(/일정\s*(추가|등록)\s*(해\s*줘|해)?/g, "").trim() || "음성 등록 신규 일정";
+                schedules.push({ id: Date.now(), date: "2026-11-14", time: "21:00", title: cleanedTitle });
+                renderScheduleList();
+                if (!fromRemote) patchCloudState({ schedules });
+                return `캘린더에 "${cleanedTitle}" 일정을 등록했습니다.`;
+            }
+            return executeSystemControlFallback(rawText, fromRemote);
         }
 
-        function executeSystemControlCommand(t, fromRemote = false) {
+        function executeSystemControlFallback(t, fromRemote = false) {
             const tLow = t.toLowerCase();
             if (["이투스", "etoos", "수강중", "마이룸", "인강"].some(k => tLow.includes(k))) {
                 runEtoosSmartLoginOnly(fromRemote);
-                return "이투스 공식 홈페이지(etoos.com/home/)로 먼저 접속한 뒤 [로그인 ➔ 마이룸 ➔ 광고 닫기 ➔ 수강중 강좌] 시맨틱 이동을 수행합니다.";
+                return "이투스 공식 홈페이지(etoos.com/home/)로 먼저 접속한 뒤 [마이룸 ➔ 수강중 강좌]로 이동합니다.";
             }
             if (["ebsi", "ebs"].some(k => tLow.includes(k))) {
                 runEbsiLoginSequence(fromRemote);
                 return "EBSi 공식 홈페이지로 접속합니다.";
             }
-            if (["백색소음", "빗소리", "브라운", "바이노럴"].some(k => tLow.includes(k))) {
-                if (["꺼", "중지"].some(k => tLow.includes(k))) return stopWhiteNoise();
-                if (tLow.includes("빗소리")) return startWhiteNoise("rain", 0.35);
-                if (tLow.includes("바이노럴")) return startWhiteNoise("binaural", 0.28);
-                return startWhiteNoise("brown", 0.32);
-            }
             if (tLow.includes("불") || tLow.includes("조명")) {
                 toggleLightMode(fromRemote);
                 return isLightOn ? "스마트 조명을 켰습니다." : "스마트 조명을 껐습니다.";
             }
-            if (tLow.includes("코딩")) return activateWorkspacePreset("coding", null, true, fromRemote);
-            if (tLow.includes("게임")) return activateWorkspacePreset("game", null, true, fromRemote);
-            if (tLow.includes("휴식")) return activateWorkspacePreset("rest", null, true, fromRemote);
             return activateWorkspacePreset("study", null, true, fromRemote);
         }
 
+        async function routeAndProcessUtterance(utterance, fromRemote = false, sttLabel = "VOICE/TEXT") {
+            const rawText = (utterance || "").trim();
+            if (!rawText) return;
+
+            // 1단계: Whisper 도메인 발음 오인식 후처리 교정
+            const correctedText = postProcessWhisperTranscript(rawText);
+            const displayBadge = correctedText !== rawText ? `${sttLabel} (교정: "${rawText}" ➔ "${correctedText}")` : sttLabel;
+
+            appendChatMessage("USER", correctedText, displayBadge);
+
+            if (!fromRemote) {
+                patchCloudState({ remoteCmd: { type: "utterance", value: correctedText, ts: Date.now() } });
+            }
+
+            // 2단계: LLM Semantic Router로 명령 수행 vs 일상 대화 판별
+            const decision = await classifyUserIntentWithLLMRouter(correctedText);
+            updateRouterInspectorUI(decision);
+
+            if (decision.intent === "COMMAND_EXECUTION") {
+                const ctrlMsg = executeRoutedCommand(decision, correctedText, fromRemote);
+                setJarvisMessage(ctrlMsg);
+                appendChatMessage(
+                    "JARVIS",
+                    ctrlMsg,
+                    `⚡ [LLM ROUTER ➔ COMMAND_EXECUTION | ${decision.action_type} | 신뢰도 ${Math.round(decision.confidence * 100)}%]`
+                );
+                speakJarvisReply(ctrlMsg);
+            } else {
+                const reply = await generateLLMChatResponse(correctedText, decision.reply);
+                setJarvisMessage(reply);
+                appendChatMessage(
+                    "JARVIS",
+                    reply,
+                    `💬 [LLM ROUTER ➔ DAILY_CONVERSATION | 신뢰도 ${Math.round(decision.confidence * 100)}%]`
+                );
+                speakJarvisReply(reply);
+            }
+        }
+
         // =========================================================================
-        // 🎙️ 3. 상시 마이크 Listening (Web Audio VAD) ➔ Whisper STT ➔ LLM 파이프라인
+        // 🎙️ 3. 고정밀 Whisper STT 엔진 (Web Audio 전처리 필터 + 도메인 프롬프트 + 발음 교정)
         // =========================================================================
+        const WHISPER_DOMAIN_CORRECTIONS = [
+            { pattern: /이\s*투\s*스|이투수|이투쓰|이토스|이투스으/gi, replace: "이투스" },
+            { pattern: /마이\s*룸|마이륭|마이룸으/gi, replace: "마이룸" },
+            { pattern: /수강\s*중\s*강좌|수강중강자|수강증\s*강좌/gi, replace: "수강중 강좌" },
+            { pattern: /이\s*비\s*에스\s*아이|이비에스/gi, replace: "EBSi" },
+            { pattern: /바이노럴|바이노랄|바이너럴/gi, replace: "바이노럴" },
+            { pattern: /브라운\s*노이즈|브라운노이즈/gi, replace: "브라운 노이즈" },
+            { pattern: /자비스야|자비스|쟈비스|차비스/gi, replace: "자비스" }
+        ];
+
+        function postProcessWhisperTranscript(text) {
+            let cleaned = (text || "").trim();
+            // Whisper 무음 환각(Hallucination) 상투구 필터링
+            const hallucinations = [
+                "시청해주셔서 감사합니다", "구독과 좋아요", "자막 제공", "MBC 뉴스", "KBS 뉴스", "다음 영상에서 만나요"
+            ];
+            if (hallucinations.some(h => cleaned.includes(h)) && cleaned.length < 25) {
+                return "";
+            }
+            for (const item of WHISPER_DOMAIN_CORRECTIONS) {
+                cleaned = cleaned.replace(item.pattern, item.replace);
+            }
+            return cleaned.trim();
+        }
+
         let alwaysOnMicActive = false;
         let vadAudioCtx = null;
         let vadAnalyser = null;
@@ -981,40 +1260,98 @@
         let recordedChunks = [];
         let isCurrentlySpeaking = false;
         let silenceStartTimestamp = 0;
+        let speechStartTimestamp = 0;
         let continuousRecognition = null;
+        let lastDispatchedTranscript = "";
+        let lastDispatchedTime = 0;
 
-        const VAD_ENERGY_THRESHOLD = 0.028;
-        const VAD_SILENCE_DURATION_MS = 1150;
+        const VAD_ENERGY_THRESHOLD = 0.026;
+        const VAD_SILENCE_DURATION_MS = 1050;
+        const MIN_SPEECH_DURATION_MS = 320;
 
         async function startAlwaysOnListening() {
             if (alwaysOnMicActive) return;
             try {
+                // 고감도 음성 인식을 위한 16kHz 샘플링 & 노이즈 억제 요청
                 vadMediaStream = await navigator.mediaDevices.getUserMedia({
-                    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+                    audio: {
+                        channelCount: 1,
+                        sampleRate: 16000,
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    }
                 });
                 const AudioCtx = window.AudioContext || window.webkitAudioContext;
                 vadAudioCtx = new AudioCtx();
-                const source = vadAudioCtx.createMediaStreamSource(vadMediaStream);
-                vadAnalyser = vadAudioCtx.createAnalyser();
-                vadAnalyser.fftSize = 256;
-                source.connect(vadAnalyser);
+                const rawSource = vadAudioCtx.createMediaStreamSource(vadMediaStream);
 
-                mediaRecorder = new MediaRecorder(vadMediaStream);
+                // 1) 저주파 험/진동 노이즈 제거 (High-pass 85Hz)
+                const highpass = vadAudioCtx.createBiquadFilter();
+                highpass.type = "highpass";
+                highpass.frequency.value = 85;
+
+                // 2) 음성 대역폭 명료도 강화 및 다이나믹 컴프레서 적용
+                const compressor = vadAudioCtx.createDynamicsCompressor();
+                compressor.threshold.value = -36;
+                compressor.knee.value = 25;
+                compressor.ratio.value = 6;
+
+                vadAnalyser = vadAudioCtx.createAnalyser();
+                vadAnalyser.fftSize = 512;
+                vadAnalyser.smoothingTimeConstant = 0.35;
+
+                const processedDest = vadAudioCtx.createMediaStreamDestination();
+                rawSource.connect(highpass);
+                highpass.connect(compressor);
+                compressor.connect(vadAnalyser);
+                compressor.connect(processedDest);
+
+                // 지원되는 가장 선명한 Opus 오디오 포맷 선택
+                const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+                    ? "audio/webm;codecs=opus"
+                    : "audio/webm";
+
+                mediaRecorder = new MediaRecorder(processedDest.stream, { mimeType });
                 mediaRecorder.ondataavailable = (e) => {
                     if (e.data && e.data.size > 0) recordedChunks.push(e.data);
                 };
                 mediaRecorder.onstop = async () => {
-                    const audioBlob = new Blob(recordedChunks, { type: "audio/webm" });
+                    const duration = Date.now() - speechStartTimestamp;
+                    const audioBlob = new Blob(recordedChunks, { type: mimeType });
                     recordedChunks = [];
-                    await processCapturedVoiceWithWhisper(audioBlob);
+                    if (duration >= MIN_SPEECH_DURATION_MS && audioBlob.size > 1200) {
+                        await processCapturedVoiceWithWhisper(audioBlob);
+                    } else {
+                        updateVadUI(true, "LISTENING (Whisper 대기)");
+                    }
                 };
 
                 startContinuousStreamSTT();
                 alwaysOnMicActive = true;
-                updateVadUI(true, "LISTENING (상시 대기)");
+                updateVadUI(true, "LISTENING (Whisper 대기)");
+                updateWhisperBadgeStatus();
                 monitorVoiceActivityLoop();
             } catch (err) {
                 updateVadUI(false, "마이크 권한 필요");
+            }
+        }
+
+        function updateWhisperBadgeStatus() {
+            const hasOpenAI = !!safeGetStorage("jarvis_openai_key");
+            const customWhisper = !!safeGetStorage("jarvis_whisper_url");
+            const dot = document.getElementById("whisper-engine-dot");
+            const txt = document.getElementById("whisper-engine-text");
+            const tel = document.getElementById("telemetry-whisper-mode");
+
+            if (hasOpenAI || customWhisper) {
+                if (dot) dot.className = "w-2 h-2 rounded-full bg-emerald-400 animate-ping";
+                if (txt) txt.innerText = customWhisper ? "WHISPER STT: LOCAL SERVER" : "WHISPER STT: API ACTIVE (whisper-1)";
+                if (tel) tel.innerText = "whisper-1 + Prompt";
+            } else {
+                if (dot) dot.className = "w-2 h-2 rounded-full bg-purple-400";
+                if (txt) txt.innerText = "WHISPER STT: HYBRID N-BEST";
+                if (tel) tel.innerText = "Hybrid N-Best + 교정사전";
             }
         }
 
@@ -1027,24 +1364,26 @@
             continuousRecognition.lang = "ko-KR";
             continuousRecognition.continuous = true;
             continuousRecognition.interimResults = true;
+            continuousRecognition.maxAlternatives = 5; // N-Best 후보군 중 도메인 어휘 매칭 정확도 향상
 
             continuousRecognition.onresult = (event) => {
                 let interim = "";
                 for (let i = event.resultIndex; i < event.results.length; i++) {
-                    const tr = event.results[i][0].transcript.trim();
-                    if (event.results[i].isFinal) {
-                        const hasOpenAIKey = !!(localStorage.getItem("jarvis_openai_key") || "");
-                        if (!hasOpenAIKey && tr) {
-                            routeAndProcessUtterance(tr, false, "🎙️ ALWAYS-ON STT");
+                    const resultItem = event.results[i];
+                    if (resultItem.isFinal) {
+                        const bestTranscript = selectBestDomainTranscript(resultItem);
+                        const hasWhisperApi = !!(safeGetStorage("jarvis_openai_key") || safeGetStorage("jarvis_whisper_url"));
+                        if (!hasWhisperApi && bestTranscript) {
+                            dispatchDeduplicatedTranscript(bestTranscript, "🎙️ WHISPER-HYBRID STT");
                         }
                     } else {
-                        interim += tr;
+                        interim += resultItem[0].transcript.trim();
                     }
                 }
                 const previewEl = document.getElementById("live-stt-preview");
                 if (previewEl) {
                     previewEl.classList.toggle("hidden", !interim);
-                    if (interim) previewEl.innerText = `🎙️ "${interim}..."`;
+                    if (interim) previewEl.innerText = `🎙️ "${postProcessWhisperTranscript(interim)}..."`;
                 }
             };
 
@@ -1052,6 +1391,36 @@
                 if (alwaysOnMicActive) { try { continuousRecognition.start(); } catch (e) {} }
             };
             try { continuousRecognition.start(); } catch (e) {}
+        }
+
+        // N-Best 후보 중 도메인 핵심 키워드가 포함된 후보에 가산점을 부여하여 음성 인식 정확도 극대화
+        function selectBestDomainTranscript(speechResultItem) {
+            const domainKeywords = ["이투스", "마이룸", "수강중", "강좌", "공부", "코딩", "게임", "휴식", "빗소리", "브라운", "바이노럴", "조명", "불", "일정"];
+            let bestText = speechResultItem[0].transcript.trim();
+            let bestScore = -1;
+
+            for (let k = 0; k < speechResultItem.length; k++) {
+                const candidate = postProcessWhisperTranscript(speechResultItem[k].transcript.trim());
+                let score = (speechResultItem[k].confidence || 0.8) * 10;
+                domainKeywords.forEach(kw => {
+                    if (candidate.includes(kw)) score += 3.5;
+                });
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestText = candidate;
+                }
+            }
+            return bestText;
+        }
+
+        function dispatchDeduplicatedTranscript(text, label) {
+            const cleaned = postProcessWhisperTranscript(text);
+            if (!cleaned) return;
+            const now = Date.now();
+            if (cleaned === lastDispatchedTranscript && (now - lastDispatchedTime) < 2500) return;
+            lastDispatchedTranscript = cleaned;
+            lastDispatchedTime = now;
+            routeAndProcessUtterance(cleaned, false, label);
         }
 
         function monitorVoiceActivityLoop() {
@@ -1075,7 +1444,7 @@
                 if (ctx && canvas) {
                     ctx.fillStyle = "#02060d";
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
-                    const barWidth = Math.min(canvas.width, Math.round((rms / 0.18) * canvas.width));
+                    const barWidth = Math.min(canvas.width, Math.round((rms / 0.16) * canvas.width));
                     ctx.fillStyle = rms > VAD_ENERGY_THRESHOLD ? "#00ffaa" : "#00f2ff";
                     ctx.fillRect(0, 0, barWidth, canvas.height);
                 }
@@ -1085,8 +1454,9 @@
                     silenceStartTimestamp = Date.now();
                     if (!isCurrentlySpeaking) {
                         isCurrentlySpeaking = true;
+                        speechStartTimestamp = Date.now();
                         if (reactor) reactor.classList.add("listening-speaking");
-                        updateVadUI(true, "🗣️ 음성 감지됨 (녹음 중)");
+                        updateVadUI(true, "🗣️ Whisper 녹음 중...");
                         if (mediaRecorder && mediaRecorder.state === "inactive") {
                             recordedChunks = [];
                             try { mediaRecorder.start(); } catch (e) {}
@@ -1095,7 +1465,7 @@
                 } else if (isCurrentlySpeaking && (Date.now() - silenceStartTimestamp > VAD_SILENCE_DURATION_MS)) {
                     isCurrentlySpeaking = false;
                     if (reactor) reactor.classList.remove("listening-speaking");
-                    updateVadUI(true, "⏳ Whisper STT 분석 중...");
+                    updateVadUI(true, "⏳ Whisper 정밀 변환 중...");
                     if (mediaRecorder && mediaRecorder.state === "recording") {
                         try { mediaRecorder.stop(); } catch (e) {}
                     }
@@ -1104,32 +1474,62 @@
             checkFrame();
         }
 
+        // 수동 정밀 녹음 트리거 버튼
+        function triggerInstantWhisperRecord() {
+            if (!alwaysOnMicActive) {
+                startAlwaysOnListening();
+                return;
+            }
+            if (mediaRecorder && mediaRecorder.state === "recording") {
+                isCurrentlySpeaking = false;
+                try { mediaRecorder.stop(); } catch (e) {}
+                updateVadUI(true, "⏳ Whisper 정밀 변환 중...");
+            } else if (mediaRecorder && mediaRecorder.state === "inactive") {
+                recordedChunks = [];
+                speechStartTimestamp = Date.now();
+                isCurrentlySpeaking = true;
+                silenceStartTimestamp = Date.now() + 2500;
+                try { mediaRecorder.start(); } catch (e) {}
+                updateVadUI(true, "🎯 Whisper 수동 정밀 녹음 중...");
+            }
+        }
+
         async function processCapturedVoiceWithWhisper(audioBlob) {
-            const openaiKey = localStorage.getItem("jarvis_openai_key") || "";
-            if (openaiKey && audioBlob.size > 1000) {
+            const openaiKey = safeGetStorage("jarvis_openai_key");
+            const customWhisperUrl = safeGetStorage("jarvis_whisper_url");
+            const whisperPrompt = safeGetStorage("jarvis_whisper_prompt", DEFAULT_WHISPER_PROMPT);
+
+            const targetEndpoint = customWhisperUrl || (openaiKey ? "https://api.openai.com/v1/audio/transcriptions" : "");
+
+            if (targetEndpoint && audioBlob.size > 1200) {
                 try {
                     const formData = new FormData();
                     formData.append("file", audioBlob, "voice.webm");
                     formData.append("model", "whisper-1");
                     formData.append("language", "ko");
+                    formData.append("temperature", "0");
+                    formData.append("prompt", whisperPrompt);
 
-                    const res = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+                    const headers = {};
+                    if (openaiKey) headers["Authorization"] = `Bearer ${openaiKey}`;
+
+                    const res = await fetch(targetEndpoint, {
                         method: "POST",
-                        headers: { "Authorization": `Bearer ${openaiKey}` },
+                        headers,
                         body: formData
                     });
                     if (res.ok) {
                         const data = await res.json();
-                        const whisperText = (data.text || "").trim();
-                        updateVadUI(true, "LISTENING (상시 대기)");
+                        const whisperText = postProcessWhisperTranscript(data.text || "");
+                        updateVadUI(true, "LISTENING (Whisper 대기)");
                         if (whisperText.length > 1) {
-                            await routeAndProcessUtterance(whisperText, false, "🎯 WHISPER-1 STT");
+                            dispatchDeduplicatedTranscript(whisperText, "🎯 WHISPER-1 STT");
                             return;
                         }
                     }
                 } catch (e) {}
             }
-            updateVadUI(true, "LISTENING (상시 대기)");
+            updateVadUI(true, "LISTENING (Whisper 대기)");
         }
 
         function toggleAlwaysOnMic() {
@@ -1202,7 +1602,7 @@
                 this.playing = true;
                 const kr = { brown: "브라운노이즈", rain: "빗소리", binaural: "바이노럴" }[profile] || "백색소음";
                 document.getElementById("mini-noise-label").innerText = `🎧 ${kr}`;
-                return `🎧 ${kr} 재생`;
+                return `🎧 ${kr} 재생을 시작합니다.`;
             }
             setVolume(v) { if (this.masterGain) this.masterGain.gain.value = v; }
             stop() {
@@ -1210,7 +1610,7 @@
                 this.activeNodes = []; this.playing = false;
                 const lbl = document.getElementById("mini-noise-label");
                 if (lbl) lbl.innerText = "🔇 백색소음: 정지";
-                return "🔇 백색소음 정지";
+                return "🔇 백색소음을 정지했습니다.";
             }
         }
         const ambientEngine = new WebWhiteNoiseSynthesizer();
@@ -1332,11 +1732,13 @@
             };
             cloudNodeCache = nodeInfo;
             updateNodeUIEverywhere(nodeInfo);
-            await fetch(FIREBASE_NODE_URL, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(nodeInfo)
-            });
+            try {
+                await fetch(FIREBASE_NODE_URL, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(nodeInfo)
+                });
+            } catch (e) {}
         }
 
         async function updateDeviceName() {
@@ -1350,9 +1752,10 @@
         }
 
         function openApiConfigModal() {
-            document.getElementById("cfg-openai-key").value = localStorage.getItem("jarvis_openai_key") || "";
-            document.getElementById("cfg-gemini-key").value = localStorage.getItem("jarvis_gemini_key") || "";
-            document.getElementById("cfg-ollama-url").value = localStorage.getItem("jarvis_ollama_url") || "http://localhost:11434/api/generate";
+            document.getElementById("cfg-openai-key").value = safeGetStorage("jarvis_openai_key");
+            document.getElementById("cfg-gemini-key").value = safeGetStorage("jarvis_gemini_key");
+            document.getElementById("cfg-whisper-url").value = safeGetStorage("jarvis_whisper_url");
+            document.getElementById("cfg-whisper-prompt").value = safeGetStorage("jarvis_whisper_prompt", DEFAULT_WHISPER_PROMPT);
             const m = document.getElementById("api-config-modal");
             m.classList.remove("hidden"); m.classList.add("flex");
         }
@@ -1361,32 +1764,41 @@
             m.classList.add("hidden"); m.classList.remove("flex");
         }
         function saveApiConfig() {
-            localStorage.setItem("jarvis_openai_key", document.getElementById("cfg-openai-key").value.trim());
-            localStorage.setItem("jarvis_gemini_key", document.getElementById("cfg-gemini-key").value.trim());
-            localStorage.setItem("jarvis_ollama_url", document.getElementById("cfg-ollama-url").value.trim());
+            safeSetStorage("jarvis_openai_key", document.getElementById("cfg-openai-key").value.trim());
+            safeSetStorage("jarvis_gemini_key", document.getElementById("cfg-gemini-key").value.trim());
+            safeSetStorage("jarvis_whisper_url", document.getElementById("cfg-whisper-url").value.trim());
+            safeSetStorage("jarvis_whisper_prompt", document.getElementById("cfg-whisper-prompt").value.trim() || DEFAULT_WHISPER_PROMPT);
+            updateWhisperBadgeStatus();
             closeApiConfigModal();
         }
 
         function openAuthModal(role) {
             pendingRole = role;
-            document.getElementById("modal-role-title").innerText = `${role} 모드 인증`;
-            document.getElementById("password-input").value = "";
+            document.getElementById("modal-role-title").innerText = `${role} 모드 보안 인증`;
+            document.getElementById("auth-error-msg").innerText = "";
+            const pwInput = document.getElementById("password-input");
+            pwInput.value = "";
             const m = document.getElementById("auth-modal");
             m.classList.remove("hidden"); m.classList.add("flex");
-            setTimeout(() => document.getElementById("password-input").focus(), 50);
+            setTimeout(() => pwInput.focus(), 50);
         }
         function closeAuthModal() {
+            const pwInput = document.getElementById("password-input");
+            if (pwInput) pwInput.value = "";
             const m = document.getElementById("auth-modal");
             m.classList.add("hidden"); m.classList.remove("flex");
         }
-        function fillDemoPassword() { document.getElementById("password-input").value = SYSTEM_PW; }
         document.getElementById("password-input")?.addEventListener("keydown", (e) => { if (e.key === "Enter") verifyPassword(); });
 
         async function verifyPassword() {
-            if (document.getElementById("password-input").value !== SYSTEM_PW) {
+            const pwInput = document.getElementById("password-input");
+            const entered = pwInput ? pwInput.value : "";
+            if (entered !== SYSTEM_PW) {
                 document.getElementById("auth-error-msg").innerText = "비밀번호가 일치하지 않습니다.";
+                if (pwInput) pwInput.value = "";
                 return;
             }
+            if (pwInput) pwInput.value = "";
             closeAuthModal();
             document.getElementById("login-screen").classList.add("hidden");
             if (pendingRole === "PANEL") {
@@ -1411,6 +1823,7 @@
         function showUserDashboard() {
             document.getElementById("user-dashboard").classList.remove("hidden");
             renderCalendar(); renderScheduleList();
+            updateWhisperBadgeStatus();
             startAlwaysOnListening();
         }
 
@@ -1467,7 +1880,7 @@
             for (let d = 1; d <= 30; d++) {
                 const dateStr = `2026-11-${String(d).padStart(2, "0")}`;
                 const btn = document.createElement("button");
-                btn.className = `py-0.5 rounded text-[11px] cursor-pointer ${d === 13 ? "bg-cyan-400 text-slate-950 font-bold" : "text-cyan-100 hover:bg-cyan-500/20"}`;
+                btn.className = `py-0.5 rounded text-[11px] cursor-pointer ${d === 14 ? "bg-cyan-400 text-slate-950 font-bold" : "text-cyan-100 hover:bg-cyan-500/20"}`;
                 btn.innerText = d;
                 btn.onclick = () => { selectedDateFilter = dateStr; renderScheduleList(); };
                 grid.appendChild(btn);
